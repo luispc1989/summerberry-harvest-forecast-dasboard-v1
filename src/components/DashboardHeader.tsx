@@ -5,6 +5,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/summerberry-logo.png";
 
 export const DashboardHeader = () => {
   const [date, setDate] = useState<Date>(new Date());
@@ -13,9 +14,11 @@ export const DashboardHeader = () => {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <span className="text-xl font-bold text-primary-foreground">SB</span>
-          </div>
+          <img 
+            src={logo} 
+            alt="The Summer Berry Company" 
+            className="h-12 w-12 object-contain"
+          />
           <div>
             <h1 className="text-lg font-semibold text-foreground">SummerBerry</h1>
             <p className="text-xs text-muted-foreground">Harvest Forecasting Dashboard</p>
