@@ -11,13 +11,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("forecast");
+  const [selectedSite, setSelectedSite] = useState("adm");
+  const [selectedVariety, setSelectedVariety] = useState("a");
 
   return (
     <div className="min-h-screen flex flex-col">
       <DashboardHeader />
       
       <div className="flex flex-1 overflow-hidden">
-        <FilterSidebar />
+        <FilterSidebar 
+          selectedSite={selectedSite}
+          selectedVariety={selectedVariety}
+          onSiteChange={setSelectedSite}
+          onVarietyChange={setSelectedVariety}
+        />
         
         <main className="flex-1 overflow-y-auto bg-background">
           <div className="p-6 space-y-6">
@@ -40,7 +47,7 @@ const Index = () => {
                 </section>
 
                 <section className="grid gap-6 lg:grid-cols-2">
-                  <ActualVsPredictedChart />
+                  <ActualVsPredictedChart site={selectedSite} variety={selectedVariety} />
                   <TopInfluencingFactors />
                 </section>
               </TabsContent>

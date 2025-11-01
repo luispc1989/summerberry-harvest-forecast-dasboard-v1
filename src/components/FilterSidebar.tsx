@@ -3,7 +3,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 
-export const FilterSidebar = () => {
+interface FilterSidebarProps {
+  selectedSite: string;
+  selectedVariety: string;
+  onSiteChange: (value: string) => void;
+  onVarietyChange: (value: string) => void;
+}
+
+export const FilterSidebar = ({ selectedSite, selectedVariety, onSiteChange, onVarietyChange }: FilterSidebarProps) => {
   return (
     <aside className="w-72 border-r border-sidebar-border bg-sidebar p-6">
       <div className="space-y-6">
@@ -18,7 +25,7 @@ export const FilterSidebar = () => {
               <MapPin className="h-4 w-4 text-primary" />
               Site
             </Label>
-            <Select defaultValue="adm">
+            <Select value={selectedSite} onValueChange={onSiteChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select site" />
               </SelectTrigger>
@@ -34,7 +41,7 @@ export const FilterSidebar = () => {
               <Leaf className="h-4 w-4 text-primary" />
               Variety
             </Label>
-            <Select defaultValue="a">
+            <Select value={selectedVariety} onValueChange={onVarietyChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select variety" />
               </SelectTrigger>
