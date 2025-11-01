@@ -6,11 +6,13 @@ import { Card } from "@/components/ui/card";
 interface FilterSidebarProps {
   selectedSite: string;
   selectedVariety: string;
+  selectedDateRange: string;
   onSiteChange: (value: string) => void;
   onVarietyChange: (value: string) => void;
+  onDateRangeChange: (value: string) => void;
 }
 
-export const FilterSidebar = ({ selectedSite, selectedVariety, onSiteChange, onVarietyChange }: FilterSidebarProps) => {
+export const FilterSidebar = ({ selectedSite, selectedVariety, selectedDateRange, onSiteChange, onVarietyChange, onDateRangeChange }: FilterSidebarProps) => {
   return (
     <aside className="w-72 border-r border-sidebar-border bg-sidebar p-6">
       <div className="space-y-6">
@@ -60,7 +62,7 @@ export const FilterSidebar = ({ selectedSite, selectedVariety, onSiteChange, onV
               <Calendar className="h-4 w-4 text-primary" />
               Date Range
             </Label>
-            <Select defaultValue="7d">
+            <Select value={selectedDateRange} onValueChange={onDateRangeChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select range" />
               </SelectTrigger>

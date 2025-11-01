@@ -13,6 +13,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("forecast");
   const [selectedSite, setSelectedSite] = useState("adm");
   const [selectedVariety, setSelectedVariety] = useState("a");
+  const [selectedDateRange, setSelectedDateRange] = useState("7d");
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -22,8 +23,10 @@ const Index = () => {
         <FilterSidebar 
           selectedSite={selectedSite}
           selectedVariety={selectedVariety}
+          selectedDateRange={selectedDateRange}
           onSiteChange={setSelectedSite}
           onVarietyChange={setSelectedVariety}
+          onDateRangeChange={setSelectedDateRange}
         />
         
         <main className="flex-1 overflow-y-auto bg-background">
@@ -47,7 +50,11 @@ const Index = () => {
                 </section>
 
                 <section className="grid gap-6 lg:grid-cols-2">
-                  <ActualVsPredictedChart site={selectedSite} variety={selectedVariety} />
+                  <ActualVsPredictedChart 
+                    site={selectedSite} 
+                    variety={selectedVariety}
+                    dateRange={selectedDateRange}
+                  />
                   <TopInfluencingFactors />
                 </section>
               </TabsContent>

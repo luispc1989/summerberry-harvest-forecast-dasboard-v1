@@ -99,13 +99,33 @@ const chartData = {
   },
 };
 
+// Generate data based on date range
+const generateDataForDateRange = (baseData: any[], dateRange: string) => {
+  const multipliers = {
+    '3d': { start: 0, count: 3, factor: 1.1 },
+    '7d': { start: 0, count: 7, factor: 1.0 },
+    '14d': { start: 0, count: 7, factor: 0.95 },
+    '30d': { start: 0, count: 7, factor: 0.9 },
+  };
+  
+  const config = multipliers[dateRange as keyof typeof multipliers] || multipliers['7d'];
+  
+  return baseData.slice(config.start, config.start + config.count).map(item => ({
+    ...item,
+    actual: Math.round(item.actual * config.factor),
+    predicted: Math.round(item.predicted * config.factor),
+  }));
+};
+
 interface ActualVsPredictedChartProps {
   site: string;
   variety: string;
+  dateRange: string;
 }
 
-export const ActualVsPredictedChart = ({ site, variety }: ActualVsPredictedChartProps) => {
-  const data = chartData[site as keyof typeof chartData]?.[variety as keyof typeof chartData.adm] || chartData.adm.a;
+export const ActualVsPredictedChart = ({ site, variety, dateRange }: ActualVsPredictedChartProps) => {
+  const baseData = chartData[site as keyof typeof chartData]?.[variety as keyof typeof chartData.adm] || chartData.adm.a;
+  const data = generateDataForDateRange(baseData, dateRange);
   return (
     <Card className="col-span-2">
       <CardHeader>
