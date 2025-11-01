@@ -9,13 +9,13 @@ export const TopInfluencingFactors = () => {
   ];
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Top 3 Variables Influencing Yield</CardTitle>
         <CardDescription>Based on feature importance analysis</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="flex-1 flex items-center">
+        <div className="space-y-4 w-full">
           {factors.map((factor, index) => (
             <div key={index} className="space-y-2">
               <div className="flex items-center justify-between">
