@@ -18,15 +18,13 @@ export const FilterSidebar = () => {
               <MapPin className="h-4 w-4 text-primary" />
               Site
             </Label>
-            <Select defaultValue="all">
+            <Select defaultValue="adm">
               <SelectTrigger>
                 <SelectValue placeholder="Select site" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sites</SelectItem>
-                <SelectItem value="alm">Site ALM</SelectItem>
-                <SelectItem value="brk">Site BRK</SelectItem>
-                <SelectItem value="cld">Site CLD</SelectItem>
+                <SelectItem value="adm">ADM</SelectItem>
+                <SelectItem value="alm">ALM</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -36,15 +34,16 @@ export const FilterSidebar = () => {
               <Leaf className="h-4 w-4 text-primary" />
               Variety
             </Label>
-            <Select defaultValue="all">
+            <Select defaultValue="a">
               <SelectTrigger>
                 <SelectValue placeholder="Select variety" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Varieties</SelectItem>
-                <SelectItem value="meeker">Meeker</SelectItem>
-                <SelectItem value="tulameen">Tulameen</SelectItem>
-                <SelectItem value="glen-ample">Glen Ample</SelectItem>
+                <SelectItem value="a">A</SelectItem>
+                <SelectItem value="b">B</SelectItem>
+                <SelectItem value="c">C</SelectItem>
+                <SelectItem value="d">D</SelectItem>
+                <SelectItem value="e">E</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -73,11 +72,11 @@ export const FilterSidebar = () => {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Active Sites:</span>
-              <span className="font-medium">3</span>
+              <span className="font-medium">2</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Varieties:</span>
-              <span className="font-medium">3</span>
+              <span className="font-medium">5</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Fields:</span>
