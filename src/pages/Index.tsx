@@ -6,6 +6,7 @@ import { ActualVsPredictedChart } from "@/components/ActualVsPredictedChart";
 import { CorrelationHeatmap } from "@/components/CorrelationHeatmap";
 import { DailyIndicators } from "@/components/DailyIndicators";
 import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
+import { WeeklyAverages } from "@/components/WeeklyAverages";
 import { YieldTrendChart } from "@/components/YieldTrendChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -57,7 +58,15 @@ const Index = () => {
                     dateRange={selectedDateRange}
                     selectedDate={selectedDate}
                   />
-                  <TopInfluencingFactors />
+                  <div className="grid gap-6">
+                    <TopInfluencingFactors />
+                    <WeeklyAverages 
+                      site={selectedSite}
+                      variety={selectedVariety}
+                      dateRange={selectedDateRange}
+                      selectedDate={selectedDate}
+                    />
+                  </div>
                 </section>
               </TabsContent>
 
