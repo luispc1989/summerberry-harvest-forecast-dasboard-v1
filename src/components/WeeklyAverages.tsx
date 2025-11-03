@@ -62,8 +62,8 @@ export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: Weekl
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Weekly Averages</CardTitle>
-        <CardDescription>Environmental conditions overview</CardDescription>
+        <CardTitle>Weekly Environmental Conditions</CardTitle>
+        <CardDescription>Average environmental metrics</CardDescription>
       </CardHeader>
       <CardContent className="h-[300px] flex flex-col justify-center gap-6">
         <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">

@@ -51,14 +51,14 @@ const Index = () => {
                   <ForecastCards />
                 </section>
 
-                <section className="grid gap-6 lg:grid-cols-2">
+                <section className="space-y-6">
                   <ActualVsPredictedChart 
                     site={selectedSite} 
                     variety={selectedVariety}
                     dateRange={selectedDateRange}
                     selectedDate={selectedDate}
                   />
-                  <div className="grid gap-6">
+                  <div className="grid gap-6 lg:grid-cols-2">
                     <TopInfluencingFactors />
                     <WeeklyAverages 
                       site={selectedSite}
