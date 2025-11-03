@@ -99,8 +99,8 @@ const chartData = {
   },
 };
 
-// Generate data based on date range
-const generateDataForDateRange = (baseData: any[], dateRange: string) => {
+// Generate data based on date range and selected date
+const generateDataForDateRange = (baseData: any[], dateRange: string, selectedDate: Date) => {
   const multipliers = {
     '3d': { start: 0, count: 3, factor: 1.1 },
     '7d': { start: 0, count: 7, factor: 1.0 },
@@ -110,10 +110,14 @@ const generateDataForDateRange = (baseData: any[], dateRange: string) => {
   
   const config = multipliers[dateRange as keyof typeof multipliers] || multipliers['7d'];
   
+  // Use the selected date to create a variation factor (different data for different dates)
+  const dateVariation = (selectedDate.getDate() + selectedDate.getMonth()) * 0.02;
+  const dateFactor = 1 + (dateVariation % 0.2 - 0.1); // Varies between 0.9 and 1.1
+  
   return baseData.slice(config.start, config.start + config.count).map(item => ({
     ...item,
-    actual: Math.round(item.actual * config.factor),
-    predicted: Math.round(item.predicted * config.factor),
+    actual: Math.round(item.actual * config.factor * dateFactor),
+    predicted: Math.round(item.predicted * config.factor * dateFactor),
   }));
 };
 
@@ -121,11 +125,12 @@ interface ActualVsPredictedChartProps {
   site: string;
   variety: string;
   dateRange: string;
+  selectedDate: Date;
 }
 
-export const ActualVsPredictedChart = ({ site, variety, dateRange }: ActualVsPredictedChartProps) => {
+export const ActualVsPredictedChart = ({ site, variety, dateRange, selectedDate }: ActualVsPredictedChartProps) => {
   const baseData = chartData[site as keyof typeof chartData]?.[variety as keyof typeof chartData.adm] || chartData.adm.a;
-  const data = generateDataForDateRange(baseData, dateRange);
+  const data = generateDataForDateRange(baseData, dateRange, selectedDate);
   return (
     <Card className="col-span-2">
       <CardHeader>

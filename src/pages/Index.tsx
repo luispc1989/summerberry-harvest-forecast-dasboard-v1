@@ -14,10 +14,11 @@ const Index = () => {
   const [selectedSite, setSelectedSite] = useState("adm");
   const [selectedVariety, setSelectedVariety] = useState("a");
   const [selectedDateRange, setSelectedDateRange] = useState("7d");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   return (
     <div className="min-h-screen flex flex-col">
-      <DashboardHeader />
+      <DashboardHeader date={selectedDate} onDateChange={setSelectedDate} />
       
       <div className="flex flex-1 overflow-hidden">
         <FilterSidebar 
@@ -34,7 +35,7 @@ const Index = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full max-w-2xl grid-cols-2 mb-6">
                 <TabsTrigger value="forecast" className="text-sm">
-                  3-Day Harvest
+                  Short-Term Harvest
                 </TabsTrigger>
                 <TabsTrigger value="correlations" className="text-sm">
                   Variable Correlations
@@ -44,7 +45,7 @@ const Index = () => {
               <TabsContent value="forecast" className="space-y-6 animate-fade-in">
                 <section>
                   <h2 className="text-2xl font-bold text-foreground mb-4">
-                    3-Day Harvest Forecast
+                    Short-Term Harvest Forecast
                   </h2>
                   <ForecastCards />
                 </section>
@@ -54,6 +55,7 @@ const Index = () => {
                     site={selectedSite} 
                     variety={selectedVariety}
                     dateRange={selectedDateRange}
+                    selectedDate={selectedDate}
                   />
                   <TopInfluencingFactors />
                 </section>
