@@ -1,5 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Thermometer, Droplets, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface WeeklyAveragesProps {
   site: string;
@@ -57,15 +59,83 @@ const calculateAverages = (
 };
 
 export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: WeeklyAveragesProps) => {
-  const averages = calculateAverages(site, variety, dateRange, selectedDate);
+  const [realData, setRealData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch real weather data from Odemira, Portugal
+  useEffect(() => {
+    const fetchWeatherData = async () => {
+      try {
+        setIsLoading(true);
+        // Coordinates for Odemira, Portugal
+        const lat = 37.5986;
+        const lon = -8.6387;
+        
+        // Fetch past 7 days data for weekly averages
+        const endDate = new Date(selectedDate);
+        const startDate = new Date(selectedDate);
+        startDate.setDate(startDate.getDate() - 7);
+        
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,shortwave_radiation&start_date=${startDateStr}&end_date=${endDateStr}&timezone=Europe/Lisbon`
+        );
+        
+        if (!response.ok) throw new Error('Failed to fetch weather data');
+        
+        const data = await response.json();
+        
+        // Calculate weekly averages
+        const temps = data.hourly.temperature_2m.filter((t: number) => t !== null);
+        const humidity = data.hourly.relative_humidity_2m.filter((h: number) => h !== null);
+        const radiation = data.hourly.shortwave_radiation.filter((r: number) => r !== null);
+        
+        const avgTemp = temps.reduce((a: number, b: number) => a + b, 0) / temps.length;
+        const avgHumidity = humidity.reduce((a: number, b: number) => a + b, 0) / humidity.length;
+        const avgRadiation = radiation.reduce((a: number, b: number) => a + b, 0) / radiation.length;
+        
+        setRealData({
+          temperature: avgTemp.toFixed(1),
+          humidity: Math.round(avgHumidity),
+          radiation: (avgRadiation * 0.0036).toFixed(1), // Convert W/m² to MJ/m²
+        });
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+        toast({
+          title: "Could not fetch real-time data",
+          description: "Showing simulated data instead",
+          variant: "destructive",
+        });
+        // Fallback to calculated averages
+        const fallback = calculateAverages(site, variety, dateRange, selectedDate);
+        setRealData(fallback);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWeatherData();
+  }, [site, variety, dateRange, selectedDate, toast]);
+
+  const averages = realData || calculateAverages(site, variety, dateRange, selectedDate);
 
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Weekly Environmental Conditions</CardTitle>
-        <CardDescription>Average environmental metrics</CardDescription>
+        <CardDescription>Real data from Odemira, Portugal</CardDescription>
       </CardHeader>
       <CardContent className="h-[300px] flex flex-col justify-center gap-6">
+        {isLoading && (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        )}
+        {!isLoading && (
+          <>
         <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/10">
             <Thermometer className="h-6 w-6 text-orange-500" />
@@ -95,6 +165,8 @@ export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: Weekl
             <p className="text-2xl font-bold">{averages.radiation} MJ/m²</p>
           </div>
         </div>
+        </>
+        )}
       </CardContent>
     </Card>
   );
