@@ -19,22 +19,29 @@ const Index = () => {
   const [selectedDateRange, setSelectedDateRange] = useState("7d");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSector, setSelectedSector] = useState("A1");
-  const [selectedPlantType, setSelectedPlantType] = useState("rb");
-  const [selectedPlantationDate, setSelectedPlantationDate] = useState<Date | undefined>(undefined);
+  const [selectedPlantType, setSelectedPlantType] = useState("gc");
+  const [selectedPlantationDate, setSelectedPlantationDate] = useState<Date | undefined>(new Date('2024-07-15'));
+
+  // Update sector when site changes
+  const handleSiteChange = (value: string) => {
+    setSelectedSite(value);
+    // Set first sector based on site
+    setSelectedSector(value === 'adm' ? 'A1' : '1_1');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <DashboardHeader date={selectedDate} onDateChange={setSelectedDate} />
       
       <div className="flex flex-1 overflow-hidden">
-        <FilterSidebar 
+        <FilterSidebar
           selectedSite={selectedSite}
           selectedVariety={selectedVariety}
           selectedDateRange={selectedDateRange}
           selectedSector={selectedSector}
           selectedPlantType={selectedPlantType}
           selectedPlantationDate={selectedPlantationDate}
-          onSiteChange={setSelectedSite}
+          onSiteChange={handleSiteChange}
           onVarietyChange={setSelectedVariety}
           onDateRangeChange={setSelectedDateRange}
           onSectorChange={setSelectedSector}
@@ -62,7 +69,15 @@ const Index = () => {
                   <h2 className="text-2xl font-bold text-foreground mb-4">
                     Short-Term Harvest Forecast
                   </h2>
-                  <ForecastCards />
+                  <ForecastCards 
+                    site={selectedSite}
+                    variety={selectedVariety}
+                    dateRange={selectedDateRange}
+                    selectedDate={selectedDate}
+                    sector={selectedSector}
+                    plantType={selectedPlantType}
+                    plantationDate={selectedPlantationDate}
+                  />
                 </section>
 
                 <section className="space-y-6">
@@ -93,7 +108,12 @@ const Index = () => {
                   <h2 className="text-2xl font-bold text-foreground mb-4">
                     Variable Correlation Analysis
                   </h2>
-                  <CorrelationHeatmap />
+                  <CorrelationHeatmap 
+                    site={selectedSite}
+                    variety={selectedVariety}
+                    sector={selectedSector}
+                    plantType={selectedPlantType}
+                  />
                 </section>
               </TabsContent>
 

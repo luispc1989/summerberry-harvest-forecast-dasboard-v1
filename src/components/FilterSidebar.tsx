@@ -3,6 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { WeeklyAverages } from "@/components/WeeklyAverages";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface FilterSidebarProps {
   selectedSite: string;
@@ -56,10 +61,10 @@ const almSectors = [
 ];
 
 const plantTypes = [
-  { value: 'rb', label: 'Root Blocks (RB)' },
+  { value: 'gc', label: 'Green Canes (GC)' },
   { value: 'gt', label: 'Grow Through (GT)' },
   { value: 'lc', label: 'Long Canes (LC)' },
-  { value: 'gc', label: 'Green Canes (GC)' },
+  { value: 'rb', label: 'Root Blocks (RB)' },
   { value: 'sc', label: 'Summer Cutback (SC)' }
 ];
 
@@ -181,12 +186,29 @@ export const FilterSidebar = ({
               <CalendarDays className="h-4 w-4 text-primary" />
               Plantation Date
             </Label>
-            <input
-              type="date"
-              value={selectedPlantationDate?.toISOString().split('T')[0] || ''}
-              onChange={(e) => onPlantationDateChange(e.target.value ? new Date(e.target.value) : undefined)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !selectedPlantationDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  {selectedPlantationDate ? format(selectedPlantationDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedPlantationDate}
+                  onSelect={onPlantationDateChange}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </Card>
 
@@ -202,18 +224,20 @@ export const FilterSidebar = ({
               <span className="font-medium">5</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Fields:</span>
-              <span className="font-medium">12</span>
+              <span className="text-muted-foreground">Total Sectors:</span>
+              <span className="font-medium">{sectorOptions.length}</span>
             </div>
           </div>
         </Card>
 
-        <WeeklyAverages 
-          site={selectedSite}
-          variety={selectedVariety}
-          dateRange={selectedDateRange}
-          selectedDate={selectedPlantationDate || new Date()}
-        />
+        <div className="w-full">
+          <WeeklyAverages 
+            site={selectedSite}
+            variety={selectedVariety}
+            dateRange={selectedDateRange}
+            selectedDate={selectedPlantationDate || new Date()}
+          />
+        </div>
       </div>
     </aside>
   );

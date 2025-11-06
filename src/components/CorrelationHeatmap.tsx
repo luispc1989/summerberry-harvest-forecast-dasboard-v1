@@ -1,6 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const correlationData = [
+interface CorrelationHeatmapProps {
+  site: string;
+  variety: string;
+  sector: string;
+  plantType: string;
+}
+
+const baseCorrelationData = [
   { 
     variable: "Temperature (°C)", 
     yield: 0.78, 
@@ -101,7 +108,42 @@ const getColor = (value: number) => {
   return "bg-accent/90 text-white";
 };
 
-export const CorrelationHeatmap = () => {
+export const CorrelationHeatmap = ({ site, variety, sector, plantType }: CorrelationHeatmapProps) => {
+  // Apply variations based on filters
+  const getVariation = () => {
+    let variation = 0;
+    
+    if (site === 'alm') variation += 0.05;
+    
+    const varietyVar: { [key: string]: number } = {
+      'a': 0, 'b': 0.03, 'c': -0.02, 'd': 0.04, 'e': -0.03
+    };
+    variation += (varietyVar[variety] || 0);
+    
+    const plantTypeVar: { [key: string]: number } = {
+      'gc': -0.02, 'gt': 0.02, 'lc': 0.03, 'rb': 0, 'sc': -0.01
+    };
+    variation += (plantTypeVar[plantType] || 0);
+    
+    const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    variation += ((sectorHash % 10) - 5) / 100;
+    
+    return variation;
+  };
+  
+  const variation = getVariation();
+  
+  const correlationData = baseCorrelationData.map(row => ({
+    ...row,
+    yield: Math.max(-1, Math.min(1, row.yield + variation)),
+    quality: Math.max(-1, Math.min(1, row.quality + variation)),
+    humidity: Math.max(-1, Math.min(1, row.humidity + variation)),
+    rainfall: Math.max(-1, Math.min(1, row.rainfall + variation)),
+    irrigation: Math.max(-1, Math.min(1, row.irrigation + variation)),
+    flowerAbortion: Math.max(-1, Math.min(1, row.flowerAbortion + variation)),
+    fruitSize: Math.max(-1, Math.min(1, row.fruitSize + variation)),
+    firmness: Math.max(-1, Math.min(1, row.firmness + variation)),
+  }));
   const variables = [
     "Yield", 
     "Quality", 

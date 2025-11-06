@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
+import { Plus, X, TrendingUp, TrendingDown } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 interface SectorComparisonProps {
@@ -74,29 +74,74 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate }: Sec
     setSelectedSectors(selectedSectors.map(s => s === oldSector ? newSector : s));
   };
   
-  // Generate comparison data
+  // Generate comparison data based on filters
   const generateData = () => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days.map((day, idx) => {
-      const dataPoint: any = { day };
+    const daysMap: { [key: string]: number } = {
+      '2d': 2, '3d': 3, '4d': 4, '5d': 5, '6d': 6, '7d': 7
+    };
+    const days = daysMap[dateRange] || 7;
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    const baseActual = 220;
+    const basePredicted = 215;
+    
+    const varietyMultipliers: { [key: string]: number } = {
+      'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
+    };
+    const varietyMultiplier = varietyMultipliers[variety] || 1.0;
+    
+    const siteMultiplier = site === 'alm' ? 1.15 : 1.0;
+    
+    return Array.from({ length: days }, (_, idx) => {
+      const dataPoint: any = { day: dayNames[idx % 7] };
+      
       selectedSectors.forEach((sector, sectorIdx) => {
-        const baseValue = 200 + (sectorIdx * 20);
-        const variation = Math.sin(idx * 0.5 + sectorIdx) * 20;
-        dataPoint[sector] = Math.round(baseValue + variation + (idx * 5));
+        const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const sectorVariation = 1 + ((sectorHash % 20) - 10) / 100;
+        const dayVariation = 0.9 + (Math.sin(idx * 0.5 + sectorIdx) * 0.1);
+        
+        const value = baseActual * varietyMultiplier * siteMultiplier * sectorVariation * dayVariation;
+        dataPoint[sector] = Math.round(value);
       });
+      
       return dataPoint;
     });
   };
   
+  // Generate statistics for each sector
+  const generateStats = () => {
+    const daysMap: { [key: string]: number } = {
+      '2d': 2, '3d': 3, '4d': 4, '5d': 5, '6d': 6, '7d': 7
+    };
+    const days = daysMap[dateRange] || 7;
+    
+    return selectedSectors.map(sector => {
+      const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const sectorVariation = 1 + ((sectorHash % 20) - 10) / 100;
+      
+      const varietyMultipliers: { [key: string]: number } = {
+        'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
+      };
+      const multiplier = (site === 'alm' ? 1.15 : 1.0) * (varietyMultipliers[variety] || 1.0) * sectorVariation;
+      
+      const actual = Math.round(220 * multiplier * days);
+      const predicted = Math.round(215 * multiplier * days * 0.98);
+      
+      return { sector, actual, predicted };
+    });
+  };
+  
   const data = generateData();
+  const comparisonData = generateStats();
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sector Comparison</CardTitle>
-        <CardDescription>Compare harvest data across multiple sectors</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Sector Comparison</CardTitle>
+          <CardDescription>Compare harvest data across multiple sectors</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Selected Sectors ({selectedSectors.length}/4)</Label>
@@ -175,5 +220,51 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate }: Sec
         </div>
       </CardContent>
     </Card>
+    
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {comparisonData.map((sector) => {
+        const deviation = ((sector.actual - sector.predicted) / sector.predicted * 100).toFixed(1);
+        const isPositive = parseFloat(deviation) >= 0;
+        
+        return (
+          <Card key={sector.sector}>
+            <CardHeader>
+              <CardTitle className="text-base">Sector {sector.sector}</CardTitle>
+              <CardDescription>7-Day Statistics</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
+                <div>
+                  <p className="text-xs text-muted-foreground">Actual</p>
+                  <p className="text-lg font-bold text-primary">{sector.actual} kg</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center p-3 rounded-lg bg-secondary/10">
+                <div>
+                  <p className="text-xs text-muted-foreground">Predicted</p>
+                  <p className="text-lg font-bold text-secondary">{sector.predicted} kg</p>
+                </div>
+              </div>
+              
+              <div className={`flex items-center justify-center gap-2 p-3 rounded-lg ${isPositive ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                {isPositive ? (
+                  <TrendingUp className={`h-4 w-4 text-green-500`} />
+                ) : (
+                  <TrendingDown className={`h-4 w-4 text-red-500`} />
+                )}
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Deviation</p>
+                  <p className={`text-lg font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                    {parseFloat(deviation) > 0 ? '+' : ''}{deviation}%
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  </div>
   );
 };
