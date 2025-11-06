@@ -126,9 +126,11 @@ interface ActualVsPredictedChartProps {
   variety: string;
   dateRange: string;
   selectedDate: Date;
+  sector?: string;
+  plantType?: string;
 }
 
-export const ActualVsPredictedChart = ({ site, variety, dateRange, selectedDate }: ActualVsPredictedChartProps) => {
+export const ActualVsPredictedChart = ({ site, variety, dateRange, selectedDate, sector, plantType }: ActualVsPredictedChartProps) => {
   const baseData = chartData[site as keyof typeof chartData]?.[variety as keyof typeof chartData.adm] || chartData.adm.a;
   const data = generateDataForDateRange(baseData, dateRange, selectedDate);
   return (
@@ -151,10 +153,27 @@ export const ActualVsPredictedChart = ({ site, variety, dateRange, selectedDate 
               style={{ fontSize: '12px' }}
             />
             <Tooltip 
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const actual = payload[0].value as number;
+                  const predicted = payload[1].value as number;
+                  const deviation = ((actual - predicted) / predicted * 100).toFixed(1);
+                  return (
+                    <div className="bg-card border border-border p-4 rounded-lg shadow-lg">
+                      <p className="text-sm font-medium mb-2">{payload[0].payload.date}</p>
+                      <p className="text-sm text-primary">
+                        Actual Harvest: {actual} kg
+                      </p>
+                      <p className="text-sm text-secondary">
+                        Predicted Harvest: {predicted} kg
+                      </p>
+                      <p className={`text-sm font-medium mt-1 ${parseFloat(deviation) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        Deviation: {deviation}%
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
               }}
             />
             <Legend />
