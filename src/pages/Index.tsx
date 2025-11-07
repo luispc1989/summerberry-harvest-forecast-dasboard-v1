@@ -4,7 +4,6 @@ import { FilterSidebar } from "@/components/FilterSidebar";
 import { ForecastCards } from "@/components/ForecastCards";
 import { ActualVsPredictedChart } from "@/components/ActualVsPredictedChart";
 import { CorrelationHeatmap } from "@/components/CorrelationHeatmap";
-import { DailyIndicators } from "@/components/DailyIndicators";
 import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
 import { WeeklyAverages } from "@/components/WeeklyAverages";
 import { YieldTrendChart } from "@/components/YieldTrendChart";

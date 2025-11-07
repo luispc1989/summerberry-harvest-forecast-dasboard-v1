@@ -125,7 +125,7 @@ export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: Weekl
   return (
     <Card className="h-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Weekly Environmental</CardTitle>
+        <CardTitle className="text-base">Weekly Environmental Conditions</CardTitle>
         <CardDescription className="text-xs">Odemira, Portugal</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col justify-center gap-3">
