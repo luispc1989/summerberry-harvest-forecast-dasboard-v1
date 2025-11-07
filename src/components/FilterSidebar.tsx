@@ -212,24 +212,6 @@ export const FilterSidebar = ({
           </div>
         </Card>
 
-        <Card className="p-4 bg-muted/50">
-          <h3 className="text-sm font-medium mb-2">Quick Stats</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Active Sites:</span>
-              <span className="font-medium">2</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Varieties:</span>
-              <span className="font-medium">5</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Sectors:</span>
-              <span className="font-medium">{sectorOptions.length}</span>
-            </div>
-          </div>
-        </Card>
-
         <div className="w-full">
           <WeeklyAverages 
             site={selectedSite}

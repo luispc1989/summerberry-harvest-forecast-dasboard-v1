@@ -82,7 +82,21 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate, plant
       'Last 2 days': 2, 'Last 3 days': 3, 'Last 4 days': 4, 'Last 5 days': 5, 'Last 6 days': 6, 'Last 7 days': 7
     };
     const days = daysMap[dateRange] || 7;
-    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    // Generate day labels dynamically based on the selected date
+    const generateDayLabels = (numDays: number, endDate: Date) => {
+      const labels = [];
+      for (let i = numDays - 1; i >= 0; i--) {
+        const date = new Date(endDate);
+        date.setDate(date.getDate() - i);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayNum = date.getDate();
+        labels.push(`${dayName} ${dayNum}`);
+      }
+      return labels;
+    };
+    
+    const dayLabels = generateDayLabels(days, selectedDate);
     
     const baseActual = 220;
     
@@ -110,7 +124,7 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate, plant
     }
     
     return Array.from({ length: days }, (_, idx) => {
-      const dataPoint: any = { day: dayNames[idx % 7] };
+      const dataPoint: any = { day: dayLabels[idx] };
       
       selectedSectors.forEach((sector, sectorIdx) => {
         const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -160,8 +174,11 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate, plant
       const multiplier = (site === 'alm' ? 1.15 : 1.0) * (varietyMultipliers[variety] || 1.0) * 
                         sectorVariation * plantTypeMultiplier * dateVariation * plantationFactor;
       
+      // Add unique variation for predicted values to create different deviations
+      const predictedVariation = 0.92 + ((sectorHash % 17) / 100);
+      
       const actual = Math.round(220 * multiplier * days);
-      const predicted = Math.round(215 * multiplier * days * 0.96);
+      const predicted = Math.round(215 * multiplier * days * predictedVariation);
       
       return { sector, actual, predicted };
     });

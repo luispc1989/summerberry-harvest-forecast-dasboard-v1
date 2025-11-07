@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Thermometer, Droplets, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 
 interface WeeklyAveragesProps {
   site: string;
@@ -61,7 +60,6 @@ const calculateAverages = (
 export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: WeeklyAveragesProps) => {
   const [realData, setRealData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
   // Fetch real weather data from Odemira, Portugal
   useEffect(() => {
@@ -104,12 +102,7 @@ export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: Weekl
         });
       } catch (error) {
         console.error('Error fetching weather data:', error);
-        toast({
-          title: "Could not fetch real-time data",
-          description: "Showing simulated data instead",
-          variant: "destructive",
-        });
-        // Fallback to calculated averages
+        // Fallback to calculated averages without showing toast
         const fallback = calculateAverages(site, variety, dateRange, selectedDate);
         setRealData(fallback);
       } finally {
@@ -118,7 +111,7 @@ export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: Weekl
     };
 
     fetchWeatherData();
-  }, [site, variety, dateRange, selectedDate, toast]);
+  }, [site, variety, dateRange, selectedDate]);
 
   const averages = realData || calculateAverages(site, variety, dateRange, selectedDate);
 
