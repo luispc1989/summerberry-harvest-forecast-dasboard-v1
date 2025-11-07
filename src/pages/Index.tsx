@@ -5,7 +5,6 @@ import { ForecastCards } from "@/components/ForecastCards";
 import { ActualVsPredictedChart } from "@/components/ActualVsPredictedChart";
 import { CorrelationHeatmap } from "@/components/CorrelationHeatmap";
 import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
-import { WeeklyAverages } from "@/components/WeeklyAverages";
 import { YieldTrendChart } from "@/components/YieldTrendChart";
 import { HarvestStats } from "@/components/HarvestStats";
 import { SectorComparison } from "@/components/SectorComparison";
@@ -50,19 +49,6 @@ const Index = () => {
         
         <main className="flex-1 overflow-y-auto bg-background">
           <div className="p-6 space-y-6">
-            <div className="flex gap-6">
-              {/* Left Sidebar - Weekly Averages */}
-              <div className="w-80">
-                <WeeklyAverages 
-                  site={selectedSite}
-                  variety={selectedVariety}
-                  dateRange={selectedDateRange}
-                  selectedDate={selectedDate}
-                />
-              </div>
-
-              {/* Main Content */}
-              <div className="flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full max-w-3xl grid-cols-3 mb-6">
                 <TabsTrigger value="forecast" className="text-sm">
@@ -145,8 +131,6 @@ const Index = () => {
                 </section>
               </TabsContent>
             </Tabs>
-              </div>
-            </div>
           </div>
         </main>
       </div>
