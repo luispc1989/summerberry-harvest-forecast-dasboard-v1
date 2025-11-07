@@ -16,7 +16,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("forecast");
   const [selectedSite, setSelectedSite] = useState("adm");
   const [selectedVariety, setSelectedVariety] = useState("a");
-  const [selectedDateRange, setSelectedDateRange] = useState("7d");
+  const [selectedDateRange, setSelectedDateRange] = useState("Last 7 days");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSector, setSelectedSector] = useState("A1");
   const [selectedPlantType, setSelectedPlantType] = useState("gc");
@@ -26,7 +26,7 @@ const Index = () => {
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
     // Set first sector based on site
-    setSelectedSector(value === 'adm' ? 'A1' : '1_1');
+    setSelectedSector(value === 'adm' ? 'A1' : '1.1');
   };
 
   return (
@@ -51,6 +51,19 @@ const Index = () => {
         
         <main className="flex-1 overflow-y-auto bg-background">
           <div className="p-6 space-y-6">
+            <div className="flex gap-6">
+              {/* Left Sidebar - Weekly Averages */}
+              <div className="w-80">
+                <WeeklyAverages 
+                  site={selectedSite}
+                  variety={selectedVariety}
+                  dateRange={selectedDateRange}
+                  selectedDate={selectedDate}
+                />
+              </div>
+
+              {/* Main Content */}
+              <div className="flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full max-w-3xl grid-cols-3 mb-6">
                 <TabsTrigger value="forecast" className="text-sm">
@@ -127,10 +140,14 @@ const Index = () => {
                     variety={selectedVariety}
                     dateRange={selectedDateRange}
                     selectedDate={selectedDate}
+                    plantType={selectedPlantType}
+                    plantationDate={selectedPlantationDate}
                   />
                 </section>
               </TabsContent>
             </Tabs>
+              </div>
+            </div>
           </div>
         </main>
       </div>

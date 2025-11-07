@@ -11,6 +11,8 @@ interface SectorComparisonProps {
   variety: string;
   dateRange: string;
   selectedDate: Date;
+  plantType: string;
+  plantationDate: Date | undefined;
 }
 
 const admSectors = [
@@ -21,37 +23,37 @@ const admSectors = [
 ];
 
 const almSectors = [
-  '1_1', '1_2', '1_3', '1_4', '1_5',
-  '2_1', '2_2', '2_3',
-  '3_1', '3_2', '4',
-  '5_1', '5_2', '5_3_1', '5_3_2',
-  '6_1', '6_2', '6_3',
-  '7_1', '7_2', '7_3',
-  '8_1', '8_2', '8_3',
-  '9_1', '9_2', '9_3', '9_4',
-  '12_1', '12_2', '12_3',
-  '13_1', '13_2', '13_3',
-  '14_1', '14_2', '14_3', '14_4_1', '14_4_2',
-  '15_1', '15_2', '15_3_1', '15_3_2', '15_4_1', '15_4_2', '15_5_1', '15_5_2',
-  '16_1', '16_2',
-  '17_1', '17_2', '17_3',
-  '18_1', '18_2', '18_3',
-  '19_1', '19_2', '19_3',
-  '20_1', '20_2', '20_3',
-  '21_1', '21_2', '21_3',
-  '22_1', '22_2', '22_3',
-  '23_1', '23_2', '23_3',
-  '24_1', '24_2', '24_3', '24_4', '24_5', '24_6',
-  '26_1', '26_2', '26_3',
-  '27_1', '27_2', '27_3',
-  '29_1', '29_2', '29_3', '29_4',
+  '1.1', '1.2', '1.3', '1.4', '1.5',
+  '2.1', '2.2', '2.3',
+  '3.1', '3.2', '4',
+  '5.1', '5.2', '5.3.1', '5.3.2',
+  '6.1', '6.2', '6.3',
+  '7.1', '7.2', '7.3',
+  '8.1', '8.2', '8.3',
+  '9.1', '9.2', '9.3', '9.4',
+  '12.1', '12.2', '12.3',
+  '13.1', '13.2', '13.3',
+  '14.1', '14.2', '14.3', '14.4.1', '14.4.2',
+  '15.1', '15.2', '15.3.1', '15.3.2', '15.4.1', '15.4.2', '15.5.1', '15.5.2',
+  '16.1', '16.2',
+  '17.1', '17.2', '17.3',
+  '18.1', '18.2', '18.3',
+  '19.1', '19.2', '19.3',
+  '20.1', '20.2', '20.3',
+  '21.1', '21.2', '21.3',
+  '22.1', '22.2', '22.3',
+  '23.1', '23.2', '23.3',
+  '24.1', '24.2', '24.3', '24.4', '24.5', '24.6',
+  '26.1', '26.2', '26.3',
+  '27.1', '27.2', '27.3',
+  '29.1', '29.2', '29.3', '29.4',
   '30',
-  '31_1', '31_2', '31_3'
+  '31.1', '31.2', '31.3'
 ];
 
 const colors = ['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981'];
 
-export const SectorComparison = ({ site, variety, dateRange, selectedDate }: SectorComparisonProps) => {
+export const SectorComparison = ({ site, variety, dateRange, selectedDate, plantType, plantationDate }: SectorComparisonProps) => {
   const [selectedSectors, setSelectedSectors] = useState<string[]>(['A1', 'B2']);
   const sectorOptions = site === 'adm' ? admSectors : almSectors;
   
@@ -77,13 +79,12 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate }: Sec
   // Generate comparison data based on filters
   const generateData = () => {
     const daysMap: { [key: string]: number } = {
-      '2d': 2, '3d': 3, '4d': 4, '5d': 5, '6d': 6, '7d': 7
+      'Last 2 days': 2, 'Last 3 days': 3, 'Last 4 days': 4, 'Last 5 days': 5, 'Last 6 days': 6, 'Last 7 days': 7
     };
     const days = daysMap[dateRange] || 7;
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
     const baseActual = 220;
-    const basePredicted = 215;
     
     const varietyMultipliers: { [key: string]: number } = {
       'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
@@ -92,15 +93,32 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate }: Sec
     
     const siteMultiplier = site === 'alm' ? 1.15 : 1.0;
     
+    // Plant type multiplier
+    const plantTypeMultipliers: { [key: string]: number } = {
+      'gc': 0.95, 'gt': 1.05, 'lc': 1.1, 'rb': 1.0, 'sc': 0.92
+    };
+    const plantTypeMultiplier = plantTypeMultipliers[plantType] || 1.0;
+    
+    // Date variation
+    const dateVariation = 1 + ((selectedDate.getDate() % 10) - 5) / 100;
+    
+    // Plantation date variation
+    let plantationFactor = 1;
+    if (plantationDate) {
+      const daysDiff = Math.floor((selectedDate.getTime() - plantationDate.getTime()) / (1000 * 60 * 60 * 24));
+      plantationFactor = 1 + (Math.min(daysDiff, 180) / 1800);
+    }
+    
     return Array.from({ length: days }, (_, idx) => {
       const dataPoint: any = { day: dayNames[idx % 7] };
       
       selectedSectors.forEach((sector, sectorIdx) => {
         const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const sectorVariation = 1 + ((sectorHash % 20) - 10) / 100;
-        const dayVariation = 0.9 + (Math.sin(idx * 0.5 + sectorIdx) * 0.1);
+        const sectorVariation = 1 + ((sectorHash % 30) - 15) / 100;
+        const dayVariation = 0.85 + (Math.sin(idx * 0.7 + sectorIdx * 1.3) * 0.15);
         
-        const value = baseActual * varietyMultiplier * siteMultiplier * sectorVariation * dayVariation;
+        const value = baseActual * varietyMultiplier * siteMultiplier * plantTypeMultiplier * 
+                     sectorVariation * dayVariation * dateVariation * plantationFactor;
         dataPoint[sector] = Math.round(value);
       });
       
@@ -111,21 +129,39 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate }: Sec
   // Generate statistics for each sector
   const generateStats = () => {
     const daysMap: { [key: string]: number } = {
-      '2d': 2, '3d': 3, '4d': 4, '5d': 5, '6d': 6, '7d': 7
+      'Last 2 days': 2, 'Last 3 days': 3, 'Last 4 days': 4, 'Last 5 days': 5, 'Last 6 days': 6, 'Last 7 days': 7
     };
     const days = daysMap[dateRange] || 7;
     
     return selectedSectors.map(sector => {
       const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const sectorVariation = 1 + ((sectorHash % 20) - 10) / 100;
+      const sectorVariation = 1 + ((sectorHash % 30) - 15) / 100;
       
       const varietyMultipliers: { [key: string]: number } = {
         'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
       };
-      const multiplier = (site === 'alm' ? 1.15 : 1.0) * (varietyMultipliers[variety] || 1.0) * sectorVariation;
+      
+      // Plant type multiplier
+      const plantTypeMultipliers: { [key: string]: number } = {
+        'gc': 0.95, 'gt': 1.05, 'lc': 1.1, 'rb': 1.0, 'sc': 0.92
+      };
+      const plantTypeMultiplier = plantTypeMultipliers[plantType] || 1.0;
+      
+      // Date variation
+      const dateVariation = 1 + ((selectedDate.getDate() % 10) - 5) / 100;
+      
+      // Plantation date variation
+      let plantationFactor = 1;
+      if (plantationDate) {
+        const daysDiff = Math.floor((selectedDate.getTime() - plantationDate.getTime()) / (1000 * 60 * 60 * 24));
+        plantationFactor = 1 + (Math.min(daysDiff, 180) / 1800);
+      }
+      
+      const multiplier = (site === 'alm' ? 1.15 : 1.0) * (varietyMultipliers[variety] || 1.0) * 
+                        sectorVariation * plantTypeMultiplier * dateVariation * plantationFactor;
       
       const actual = Math.round(220 * multiplier * days);
-      const predicted = Math.round(215 * multiplier * days * 0.98);
+      const predicted = Math.round(215 * multiplier * days * 0.96);
       
       return { sector, actual, predicted };
     });
@@ -230,7 +266,7 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate }: Sec
           <Card key={sector.sector}>
             <CardHeader>
               <CardTitle className="text-base">Sector {sector.sector}</CardTitle>
-              <CardDescription>7-Day Statistics</CardDescription>
+              <CardDescription>{dateRange} Statistics</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">

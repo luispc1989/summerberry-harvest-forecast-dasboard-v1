@@ -124,45 +124,45 @@ export const WeeklyAverages = ({ site, variety, dateRange, selectedDate }: Weekl
 
   return (
     <Card className="h-full">
-      <CardHeader>
-        <CardTitle>Weekly Environmental Conditions</CardTitle>
-        <CardDescription>Real data from Odemira, Portugal</CardDescription>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Weekly Environmental</CardTitle>
+        <CardDescription className="text-xs">Odemira, Portugal</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px] flex flex-col justify-center gap-6">
+      <CardContent className="flex flex-col justify-center gap-3">
         {isLoading && (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         )}
         {!isLoading && (
           <>
-        <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/10">
-            <Thermometer className="h-6 w-6 text-orange-500" />
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/10 shrink-0">
+            <Thermometer className="h-5 w-5 text-orange-500" />
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">Temperature</p>
-            <p className="text-2xl font-bold">{averages.temperature}°C</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
-            <Droplets className="h-6 w-6 text-blue-500" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">Humidity</p>
-            <p className="text-2xl font-bold">{averages.humidity}%</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Temperature</p>
+            <p className="text-lg font-bold">{averages.temperature}°C</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/10">
-            <Sun className="h-6 w-6 text-yellow-500" />
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
+            <Droplets className="h-5 w-5 text-blue-500" />
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">Solar Radiation</p>
-            <p className="text-2xl font-bold">{averages.radiation} MJ/m²</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Humidity</p>
+            <p className="text-lg font-bold">{averages.humidity}%</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-500/10 shrink-0">
+            <Sun className="h-5 w-5 text-yellow-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Solar Radiation</p>
+            <p className="text-lg font-bold">{averages.radiation} MJ/m²</p>
           </div>
         </div>
         </>

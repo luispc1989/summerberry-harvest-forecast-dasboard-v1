@@ -65,6 +65,9 @@ export const ForecastCards = ({ site, variety, dateRange, selectedDate, sector, 
     const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
     const stdDev = (Math.sqrt(variance) / avg * 100).toFixed(1);
     
+    // Calculate 7-day average
+    const sevenDayAvg = Math.round(avg);
+    
     return [
       {
         title: "Today's Forecast",
@@ -83,8 +86,8 @@ export const ForecastCards = ({ site, variety, dateRange, selectedDate, sector, 
         color: "secondary",
       },
       {
-        title: "Day 3",
-        value: `${day3Value} kg`,
+        title: "Last 7 Days",
+        value: `${sevenDayAvg} kg`,
         change: "-16.6%",
         trend: "down" as const,
         icon: TrendingUp,
