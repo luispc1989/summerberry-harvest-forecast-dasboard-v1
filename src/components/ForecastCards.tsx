@@ -29,7 +29,7 @@ export const ForecastCards = ({ site, variety, dateRange, selectedDate, sector, 
     
     // Date range multiplier
     const rangeMultipliers: { [key: string]: number } = {
-      '2d': 1.15, '3d': 1.10, '4d': 1.05, '5d': 1.02, '6d': 1.01, '7d': 1.0
+      'Last 2 days': 1.15, 'Last 3 days': 1.10, 'Last 4 days': 1.05, 'Last 5 days': 1.02, 'Last 6 days': 1.01, 'Last 7 days': 1.0
     };
     multiplier *= (rangeMultipliers[dateRange] || 1.0);
     

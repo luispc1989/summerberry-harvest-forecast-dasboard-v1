@@ -37,6 +37,17 @@ export const HarvestStats = ({ site, variety, dateRange, selectedDate, sector, p
     actualMultiplier *= (plantTypeMultipliers[plantType] || 1.0);
     predictedMultiplier *= (plantTypeMultipliers[plantType] || 1.0);
     
+    // Sector variation
+    const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const sectorVariation = 1 + ((sectorHash % 20) - 10) / 100;
+    actualMultiplier *= sectorVariation;
+    predictedMultiplier *= sectorVariation * 0.98;
+    
+    // Date variation based on selected date
+    const dateVariation = 1 + ((selectedDate.getDate() % 10) - 5) / 100;
+    actualMultiplier *= dateVariation;
+    predictedMultiplier *= dateVariation * 0.99;
+    
     const actual7d = Math.round(baseActual * actualMultiplier * 7);
     const predicted7d = Math.round(basePredicted * predictedMultiplier * 7);
     const avgActual = Math.round(actual7d / 7);

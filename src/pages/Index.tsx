@@ -111,6 +111,7 @@ const Index = () => {
                     variety={selectedVariety}
                     sector={selectedSector}
                     plantType={selectedPlantType}
+                    selectedDate={selectedDate}
                   />
                 </section>
               </TabsContent>

@@ -14,7 +14,7 @@ export const ActualVsPredictedChart = ({ site, variety, dateRange, selectedDate,
   // Generate data based on filters
   const generateChartData = () => {
     const daysMap: { [key: string]: number } = {
-      '2d': 2, '3d': 3, '4d': 4, '5d': 5, '6d': 6, '7d': 7
+      'Last 2 days': 2, 'Last 3 days': 3, 'Last 4 days': 4, 'Last 5 days': 5, 'Last 6 days': 6, 'Last 7 days': 7
     };
     const days = daysMap[dateRange] || 7;
     const data = [];

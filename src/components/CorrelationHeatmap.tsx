@@ -5,6 +5,7 @@ interface CorrelationHeatmapProps {
   variety: string;
   sector: string;
   plantType: string;
+  selectedDate: Date;
 }
 
 const baseCorrelationData = [
@@ -108,7 +109,7 @@ const getColor = (value: number) => {
   return "bg-accent/90 text-white";
 };
 
-export const CorrelationHeatmap = ({ site, variety, sector, plantType }: CorrelationHeatmapProps) => {
+export const CorrelationHeatmap = ({ site, variety, sector, plantType, selectedDate }: CorrelationHeatmapProps) => {
   // Apply variations based on filters
   const getVariation = () => {
     let variation = 0;
@@ -127,6 +128,10 @@ export const CorrelationHeatmap = ({ site, variety, sector, plantType }: Correla
     
     const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     variation += ((sectorHash % 10) - 5) / 100;
+    
+    // Date variation
+    const dateVariation = ((selectedDate.getDate() % 10) - 5) / 150;
+    variation += dateVariation;
     
     return variation;
   };
