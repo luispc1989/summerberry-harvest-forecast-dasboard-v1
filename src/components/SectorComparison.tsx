@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ interface SectorComparisonProps {
   variety: string;
   dateRange: string;
   selectedDate: Date;
+  sector: string;
   plantType: string;
   plantationDate: Date | undefined;
 }
@@ -53,9 +54,16 @@ const almSectors = [
 
 const colors = ['#8b5cf6', '#06b6d4', '#f59e0b', '#10b981'];
 
-export const SectorComparison = ({ site, variety, dateRange, selectedDate, plantType, plantationDate }: SectorComparisonProps) => {
-  const [selectedSectors, setSelectedSectors] = useState<string[]>(['A1', 'B2']);
+export const SectorComparison = ({ site, variety, dateRange, selectedDate, sector, plantType, plantationDate }: SectorComparisonProps) => {
   const sectorOptions = site === 'adm' ? admSectors : almSectors;
+  const defaultSectors = sectorOptions.slice(0, 2);
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(defaultSectors);
+  
+  // Update selected sectors when site changes
+  useEffect(() => {
+    const newDefaultSectors = sectorOptions.slice(0, 2);
+    setSelectedSectors(newDefaultSectors);
+  }, [site]);
   
   const addSector = () => {
     if (selectedSectors.length < 4) {

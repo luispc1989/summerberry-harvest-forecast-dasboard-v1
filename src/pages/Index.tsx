@@ -125,6 +125,7 @@ const Index = () => {
                     variety={selectedVariety}
                     dateRange={selectedDateRange}
                     selectedDate={selectedDate}
+                    sector={selectedSector}
                     plantType={selectedPlantType}
                     plantationDate={selectedPlantationDate}
                   />

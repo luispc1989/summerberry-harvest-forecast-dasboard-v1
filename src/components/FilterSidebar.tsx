@@ -171,12 +171,12 @@ export const FilterSidebar = ({
                 <SelectValue placeholder="Select range" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2d">Last 2 days</SelectItem>
-                <SelectItem value="3d">Last 3 days</SelectItem>
-                <SelectItem value="4d">Last 4 days</SelectItem>
-                <SelectItem value="5d">Last 5 days</SelectItem>
-                <SelectItem value="6d">Last 6 days</SelectItem>
-                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="Last 2 days">Last 2 days</SelectItem>
+                <SelectItem value="Last 3 days">Last 3 days</SelectItem>
+                <SelectItem value="Last 4 days">Last 4 days</SelectItem>
+                <SelectItem value="Last 5 days">Last 5 days</SelectItem>
+                <SelectItem value="Last 6 days">Last 6 days</SelectItem>
+                <SelectItem value="Last 7 days">Last 7 days</SelectItem>
               </SelectContent>
             </Select>
           </div>
