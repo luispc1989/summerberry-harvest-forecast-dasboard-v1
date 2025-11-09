@@ -14,7 +14,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("forecast");
   const [selectedSite, setSelectedSite] = useState("adm");
   const [selectedVariety, setSelectedVariety] = useState("a");
-  const [selectedDateRange, setSelectedDateRange] = useState("Last 7 days");
+  const [selectedDateRange, setSelectedDateRange] = useState("Last 3 days");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSector, setSelectedSector] = useState("A1");
   const [selectedPlantType, setSelectedPlantType] = useState("gc");
@@ -54,11 +54,11 @@ const Index = () => {
                 <TabsTrigger value="forecast" className="text-sm">
                   Short-Term Harvest
                 </TabsTrigger>
-                <TabsTrigger value="correlations" className="text-sm">
-                  Variable Correlations
-                </TabsTrigger>
                 <TabsTrigger value="comparison" className="text-sm">
                   Sector Comparison
+                </TabsTrigger>
+                <TabsTrigger value="correlations" className="text-sm">
+                  Variable Correlations
                 </TabsTrigger>
               </TabsList>
 

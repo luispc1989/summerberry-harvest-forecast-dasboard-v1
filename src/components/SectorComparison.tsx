@@ -128,11 +128,13 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate, plant
       
       selectedSectors.forEach((sector, sectorIdx) => {
         const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        // Add unique variation per sector using both hash and index
         const sectorVariation = 1 + ((sectorHash % 30) - 15) / 100;
-        const dayVariation = 0.85 + (Math.sin(idx * 0.7 + sectorIdx * 1.3) * 0.15);
+        const indexVariation = 1 + (sectorIdx * 3.7 % 20 - 10) / 100;
+        const dayVariation = 0.85 + (Math.sin(idx * 0.7 + sectorIdx * 1.3 + sectorHash * 0.1) * 0.15);
         
         const value = baseActual * varietyMultiplier * siteMultiplier * plantTypeMultiplier * 
-                     sectorVariation * dayVariation * dateVariation * plantationFactor;
+                     sectorVariation * indexVariation * dayVariation * dateVariation * plantationFactor;
         dataPoint[sector] = Math.round(value);
       });
       
@@ -147,9 +149,10 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate, plant
     };
     const days = daysMap[dateRange] || 7;
     
-    return selectedSectors.map(sector => {
+    return selectedSectors.map((sector, sectorIdx) => {
       const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const sectorVariation = 1 + ((sectorHash % 30) - 15) / 100;
+      const indexVariation = 1 + (sectorIdx * 3.7 % 20 - 10) / 100;
       
       const varietyMultipliers: { [key: string]: number } = {
         'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
@@ -172,10 +175,10 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate, plant
       }
       
       const multiplier = (site === 'alm' ? 1.15 : 1.0) * (varietyMultipliers[variety] || 1.0) * 
-                        sectorVariation * plantTypeMultiplier * dateVariation * plantationFactor;
+                        sectorVariation * indexVariation * plantTypeMultiplier * dateVariation * plantationFactor;
       
-      // Add unique variation for predicted values to create different deviations
-      const predictedVariation = 0.92 + ((sectorHash % 17) / 100);
+      // Add unique variation for predicted values to create different deviations per sector
+      const predictedVariation = 0.92 + ((sectorHash % 17) / 100) + (sectorIdx * 2.3 % 10) / 150;
       
       const actual = Math.round(220 * multiplier * days);
       const predicted = Math.round(215 * multiplier * days * predictedVariation);
