@@ -61,11 +61,11 @@ const almSectors = [
 ];
 
 const plantTypes = [
-  { value: 'gc', label: '🫐 Green Canes (GC)' },
-  { value: 'gt', label: '🍓 Grow Through (GT)' },
-  { value: 'lc', label: '🫐 Long Canes (LC)' },
-  { value: 'rb', label: '🍓 Root Blocks (RB)' },
-  { value: 'sc', label: '🫐 Summer Cutback (SC)' }
+  { value: 'gc', label: 'Green Canes (GC)' },
+  { value: 'gt', label: 'Grow Through (GT)' },
+  { value: 'lc', label: 'Long Canes (LC)' },
+  { value: 'rb', label: 'Root Blocks (RB)' },
+  { value: 'sc', label: 'Summer Cutback (SC)' }
 ];
 
 export const FilterSidebar = ({ 
@@ -146,7 +146,7 @@ export const FilterSidebar = ({
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <Trees className="h-4 w-4 text-primary" />
+              <span className="text-base">🫐</span>
               Plant Type
             </Label>
             <Select value={selectedPlantType} onValueChange={onPlantTypeChange}>
