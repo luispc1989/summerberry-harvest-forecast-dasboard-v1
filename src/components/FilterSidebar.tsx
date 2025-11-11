@@ -1,4 +1,4 @@
-import { Filter, MapPin, Calendar, Leaf, Grid3x3, Trees, CalendarDays } from "lucide-react";
+import { Filter, MapPin, Calendar, Leaf, Grid3x3, Grape, CalendarDays } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -146,7 +146,7 @@ export const FilterSidebar = ({
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <span className="text-base">🫐</span>
+              <Grape className="h-4 w-4 text-primary" />
               Plant Type
             </Label>
             <Select value={selectedPlantType} onValueChange={onPlantTypeChange}>
