@@ -286,12 +286,12 @@ export const SectorComparison = ({ site, variety, dateRange, selectedDate, secto
     </Card>
     
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-      {comparisonData.map((sector) => {
+      {comparisonData.map((sector, idx) => {
         const deviation = ((sector.actual - sector.predicted) / sector.predicted * 100).toFixed(1);
         const isPositive = parseFloat(deviation) >= 0;
         
         return (
-          <Card key={sector.sector}>
+          <Card key={`${idx}-${sector.sector}`}>
             <CardHeader>
               <CardTitle className="text-base">Sector {sector.sector}</CardTitle>
               <CardDescription>{dateRange} Statistics</CardDescription>
