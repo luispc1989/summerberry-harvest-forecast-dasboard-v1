@@ -1,4 +1,4 @@
-import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays } from "lucide-react";
+import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -184,6 +184,42 @@ export const FilterSidebar = ({
                 />
               </PopoverContent>
             </Popover>
+          </div>
+        </Card>
+
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Upload className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-sidebar-foreground">Data Upload</h3>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Upload CSV or XLSX file</Label>
+            <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer">
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                id="file-upload"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    console.log("File selected:", file.name);
+                  }
+                }}
+              />
+              <label
+                htmlFor="file-upload"
+                className="flex flex-col items-center gap-2 cursor-pointer"
+              >
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <span className="text-xs text-center text-muted-foreground">
+                  Click to upload or drag and drop
+                </span>
+                <span className="text-xs text-center text-muted-foreground">
+                  CSV, XLSX (max 10MB)
+                </span>
+              </label>
+            </div>
           </div>
         </Card>
       </div>

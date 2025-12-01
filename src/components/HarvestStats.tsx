@@ -1,5 +1,4 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface HarvestStatsProps {
   site: string;
@@ -10,103 +9,99 @@ interface HarvestStatsProps {
 }
 
 export const HarvestStats = ({ site, variety, selectedDate, sector, plantType }: HarvestStatsProps) => {
-  // Calculate stats based on filters
-  const calculateStats = () => {
-    const baseActual = 220;
+  // Generate 7 predicted values for the next 7 days
+  const calculatePredictions = () => {
     const basePredicted = 215;
     
     // Apply multipliers based on filters
-    let actualMultiplier = 1;
     let predictedMultiplier = 1;
     
     if (site === 'alm') {
-      actualMultiplier *= 1.15;
       predictedMultiplier *= 1.12;
     }
     
     const varietyMultipliers: { [key: string]: number } = {
       'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
     };
-    actualMultiplier *= (varietyMultipliers[variety] || 1.0);
     predictedMultiplier *= (varietyMultipliers[variety] || 1.0) * 0.98;
     
     const plantTypeMultipliers: { [key: string]: number } = {
       'rb': 1.0, 'gt': 1.05, 'lc': 1.1, 'gc': 0.95, 'sc': 0.92
     };
-    actualMultiplier *= (plantTypeMultipliers[plantType] || 1.0);
     predictedMultiplier *= (plantTypeMultipliers[plantType] || 1.0);
     
     // Sector variation
     const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const sectorVariation = 1 + ((sectorHash % 20) - 10) / 100;
-    actualMultiplier *= sectorVariation;
     predictedMultiplier *= sectorVariation * 0.98;
     
-    // Date variation based on selected date
-    const dateVariation = 1 + ((selectedDate.getDate() % 10) - 5) / 100;
-    actualMultiplier *= dateVariation;
-    predictedMultiplier *= dateVariation * 0.99;
+    // Generate 7 daily predictions
+    const predictions = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(selectedDate);
+      date.setDate(date.getDate() + i);
+      
+      // Add daily variation
+      const dateVariation = 1 + ((date.getDate() % 10) - 5) / 100;
+      const dayVariation = 0.9 + Math.random() * 0.2;
+      
+      const predicted = Math.round(basePredicted * predictedMultiplier * dateVariation * dayVariation);
+      
+      predictions.push({
+        day: `Day ${i + 1}`,
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        value: predicted
+      });
+    }
     
-    const actual7d = Math.round(baseActual * actualMultiplier * 7);
-    const predicted7d = Math.round(basePredicted * predictedMultiplier * 7);
-    const avgActual = Math.round(actual7d / 7);
-    const avgPredicted = Math.round(predicted7d / 7);
-    const deviation = ((actual7d - predicted7d) / predicted7d * 100).toFixed(1);
+    // Calculate statistics
+    const values = predictions.map(p => p.value);
+    const total = values.reduce((a, b) => a + b, 0);
+    const average = total / values.length;
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - average, 2), 0) / values.length;
+    const stdDev = Math.sqrt(variance);
     
     return {
-      actual7d,
-      predicted7d,
-      avgActual,
-      avgPredicted,
-      deviation: parseFloat(deviation)
+      predictions,
+      total: Math.round(total),
+      average: Math.round(average),
+      stdDev: stdDev.toFixed(1)
     };
   };
   
-  const stats = calculateStats();
-  const isPositive = stats.deviation >= 0;
+  const stats = calculatePredictions();
   
   return (
     <Card>
       <CardHeader>
         <CardTitle>7-Day Harvest Statistics</CardTitle>
-        <CardDescription>Actual vs Predicted comparison</CardDescription>
+        <CardDescription>Predicted harvest for the next 7 days</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px] flex flex-col justify-center gap-6">
-        <div className="space-y-4">
-          <div className="flex justify-between items-center p-4 rounded-lg bg-primary/10">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Actual (7d)</p>
-              <p className="text-2xl font-bold text-primary">{stats.actual7d} kg</p>
+      <CardContent className="h-[300px] flex flex-col justify-between">
+        <div className="space-y-2 flex-1 overflow-y-auto">
+          {stats.predictions.map((pred, index) => (
+            <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-secondary/10 hover:bg-secondary/20 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground">{pred.day}</span>
+                <span className="text-xs text-muted-foreground">({pred.date})</span>
+              </div>
+              <span className="text-sm font-semibold text-foreground">{pred.value} kg</span>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Daily Average</p>
-              <p className="text-xl font-semibold">{stats.avgActual} kg</p>
-            </div>
+          ))}
+        </div>
+        
+        <div className="mt-4 pt-4 border-t border-border space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Total (7 days)</span>
+            <span className="text-lg font-bold text-primary">{stats.total} kg</span>
           </div>
-          
-          <div className="flex justify-between items-center p-4 rounded-lg bg-secondary/10">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Predicted (7d)</p>
-              <p className="text-2xl font-bold text-secondary">{stats.predicted7d} kg</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Daily Average</p>
-              <p className="text-xl font-semibold">{stats.avgPredicted} kg</p>
-            </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Daily Average</span>
+            <span className="text-lg font-semibold text-foreground">{stats.average} kg</span>
           </div>
-          
-          <div className={`flex items-center justify-center gap-2 p-4 rounded-lg ${isPositive ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-            {isPositive ? (
-              <TrendingUp className={`h-5 w-5 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />
-            ) : (
-              <TrendingDown className={`h-5 w-5 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />
-            )}
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Deviation</p>
-              <p className={`text-2xl font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                {stats.deviation > 0 ? '+' : ''}{stats.deviation}%
-              </p>
-            </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Std Deviation</span>
+            <span className="text-sm font-medium text-accent">±{stats.stdDev} kg</span>
           </div>
         </div>
       </CardContent>
