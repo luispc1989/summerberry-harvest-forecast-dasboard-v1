@@ -104,9 +104,6 @@ export const ForecastCards = ({ site, variety, selectedDate, sector, plantType, 
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{forecast.value}</div>
-            <p className={`text-xs ${forecast.trend === 'up' ? 'text-primary' : 'text-accent'} mt-1`}>
-              {forecast.change} from previous period
-            </p>
           </CardContent>
         </Card>
       ))}
