@@ -77,7 +77,7 @@ export const HarvestStats = ({ site, variety, selectedDate, sector, plantType }:
         <CardTitle>7-Day Harvest Statistics</CardTitle>
         <CardDescription>Predicted harvest for the next 7 days</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px] flex flex-col justify-between">
+      <CardContent className="h-[300px] flex gap-4">
         <div className="space-y-2 flex-1 overflow-y-auto">
           {stats.predictions.map((pred, index) => (
             <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-secondary/10 hover:bg-secondary/20 transition-colors">
@@ -90,18 +90,18 @@ export const HarvestStats = ({ site, variety, selectedDate, sector, plantType }:
           ))}
         </div>
         
-        <div className="mt-4 pt-4 border-t border-border space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Total (7 days)</span>
-            <span className="text-lg font-bold text-primary">{stats.total} kg</span>
+        <div className="w-48 flex flex-col justify-center space-y-4 pl-4 border-l border-border">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Total (7 days)</p>
+            <p className="text-xl font-bold text-primary">{stats.total} kg</p>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Daily Average</span>
-            <span className="text-lg font-semibold text-foreground">{stats.average} kg</span>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Daily Average</p>
+            <p className="text-lg font-semibold text-foreground">{stats.average} kg</p>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Std Deviation</span>
-            <span className="text-sm font-medium text-accent">±{stats.stdDev} kg</span>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Std Deviation</p>
+            <p className="text-base font-medium text-accent">±{stats.stdDev} kg</p>
           </div>
         </div>
       </CardContent>
