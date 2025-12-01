@@ -36,9 +36,9 @@ export const TopInfluencingFactors = () => {
         <CardTitle>Top 5 Influencing Yield</CardTitle>
         <CardDescription>Based on feature importance analysis</CardDescription>
       </CardHeader>
-      <CardContent className="h-[480px] space-y-6 py-6">
+      <CardContent className="h-[480px] space-y-5 py-4">
         {factors.map((factor, index) => (
-          <div key={index} className="space-y-2.5">
+          <div key={index} className="space-y-2">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <span className="text-2xl font-bold text-muted-foreground/30 flex-shrink-0">
