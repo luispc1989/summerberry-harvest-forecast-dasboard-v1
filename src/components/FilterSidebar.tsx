@@ -1,8 +1,7 @@
-import { Filter, MapPin, Calendar, Leaf, Grid3x3, Grape, CalendarDays } from "lucide-react";
+import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { WeeklyAverages } from "@/components/WeeklyAverages";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -12,13 +11,11 @@ import { cn } from "@/lib/utils";
 interface FilterSidebarProps {
   selectedSite: string;
   selectedVariety: string;
-  selectedDateRange: string;
   selectedSector: string;
   selectedPlantType: string;
   selectedPlantationDate: Date | undefined;
   onSiteChange: (value: string) => void;
   onVarietyChange: (value: string) => void;
-  onDateRangeChange: (value: string) => void;
   onSectorChange: (value: string) => void;
   onPlantTypeChange: (value: string) => void;
   onPlantationDateChange: (date: Date | undefined) => void;
@@ -71,13 +68,11 @@ const plantTypes = [
 export const FilterSidebar = ({ 
   selectedSite, 
   selectedVariety, 
-  selectedDateRange, 
   selectedSector,
   selectedPlantType,
   selectedPlantationDate,
   onSiteChange, 
   onVarietyChange, 
-  onDateRangeChange,
   onSectorChange,
   onPlantTypeChange,
   onPlantationDateChange
@@ -163,26 +158,6 @@ export const FilterSidebar = ({
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <Calendar className="h-4 w-4 text-primary" />
-              Date Range
-            </Label>
-            <Select value={selectedDateRange} onValueChange={onDateRangeChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Last 2 days">Last 2 days</SelectItem>
-                <SelectItem value="Last 3 days">Last 3 days</SelectItem>
-                <SelectItem value="Last 4 days">Last 4 days</SelectItem>
-                <SelectItem value="Last 5 days">Last 5 days</SelectItem>
-                <SelectItem value="Last 6 days">Last 6 days</SelectItem>
-                <SelectItem value="Last 7 days">Last 7 days</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm font-medium">
               <CalendarDays className="h-4 w-4 text-primary" />
               Plantation Date
             </Label>
@@ -211,15 +186,6 @@ export const FilterSidebar = ({
             </Popover>
           </div>
         </Card>
-
-        <div className="w-full">
-          <WeeklyAverages 
-            site={selectedSite}
-            variety={selectedVariety}
-            dateRange={selectedDateRange}
-            selectedDate={selectedPlantationDate || new Date()}
-          />
-        </div>
       </div>
     </aside>
   );

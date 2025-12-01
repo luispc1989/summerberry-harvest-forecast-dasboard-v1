@@ -4,14 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface ForecastCardsProps {
   site: string;
   variety: string;
-  dateRange: string;
   selectedDate: Date;
   sector: string;
   plantType: string;
   plantationDate: Date | undefined;
 }
 
-export const ForecastCards = ({ site, variety, dateRange, selectedDate, sector, plantType, plantationDate }: ForecastCardsProps) => {
+export const ForecastCards = ({ site, variety, selectedDate, sector, plantType, plantationDate }: ForecastCardsProps) => {
   // Calculate forecast based on all filters
   const calculateForecast = () => {
     const baseValue = 245;
@@ -26,12 +25,6 @@ export const ForecastCards = ({ site, variety, dateRange, selectedDate, sector, 
       'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
     };
     multiplier *= (varietyMultipliers[variety] || 1.0);
-    
-    // Date range multiplier
-    const rangeMultipliers: { [key: string]: number } = {
-      'Last 2 days': 1.15, 'Last 3 days': 1.10, 'Last 4 days': 1.05, 'Last 5 days': 1.02, 'Last 6 days': 1.01, 'Last 7 days': 1.0
-    };
-    multiplier *= (rangeMultipliers[dateRange] || 1.0);
     
     // Plant type multiplier
     const plantTypeMultipliers: { [key: string]: number } = {
@@ -78,7 +71,7 @@ export const ForecastCards = ({ site, variety, dateRange, selectedDate, sector, 
         color: "primary",
       },
       {
-        title: "Tomorrow",
+        title: "Tomorrow's Forecast",
         value: `${tomorrowValue} kg`,
         change: "+6.8%",
         trend: "up" as const,
@@ -86,7 +79,7 @@ export const ForecastCards = ({ site, variety, dateRange, selectedDate, sector, 
         color: "secondary",
       },
       {
-        title: "Last 7 Days",
+        title: "Next 7 Days",
         value: `${sevenDayAvg} kg`,
         change: "-16.6%",
         trend: "down" as const,

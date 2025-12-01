@@ -4,13 +4,12 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 interface HarvestStatsProps {
   site: string;
   variety: string;
-  dateRange: string;
   selectedDate: Date;
   sector: string;
   plantType: string;
 }
 
-export const HarvestStats = ({ site, variety, dateRange, selectedDate, sector, plantType }: HarvestStatsProps) => {
+export const HarvestStats = ({ site, variety, selectedDate, sector, plantType }: HarvestStatsProps) => {
   // Calculate stats based on filters
   const calculateStats = () => {
     const baseActual = 220;
