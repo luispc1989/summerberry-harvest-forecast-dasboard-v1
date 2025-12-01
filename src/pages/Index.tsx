@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
-import { ForecastCards } from "@/components/ForecastCards";
 import { ActualVsPredictedChart } from "@/components/ActualVsPredictedChart";
 import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
 import { HarvestStats } from "@/components/HarvestStats";
@@ -41,20 +40,6 @@ const Index = () => {
         
         <main className="flex-1 overflow-y-auto bg-background">
           <div className="p-6 space-y-6">
-            <section>
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                Short-Term Harvest Forecast
-              </h2>
-              <ForecastCards 
-                site={selectedSite}
-                variety={selectedVariety}
-                selectedDate={selectedDate}
-                sector={selectedSector}
-                plantType={selectedPlantType}
-                plantationDate={selectedPlantationDate}
-              />
-            </section>
-
             <section className="space-y-6">
               <ActualVsPredictedChart 
                 site={selectedSite} 
