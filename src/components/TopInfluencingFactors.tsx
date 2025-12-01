@@ -36,31 +36,29 @@ export const TopInfluencingFactors = () => {
         <CardTitle>Top 5 Influencing Yield</CardTitle>
         <CardDescription>Based on feature importance analysis</CardDescription>
       </CardHeader>
-      <CardContent className="h-[400px] flex items-center">
-        <div className="space-y-6 w-full">
-          {factors.map((factor, index) => (
-            <div key={index} className="space-y-2.5">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <span className="text-2xl font-bold text-muted-foreground/30 flex-shrink-0">
-                    {index + 1}
-                  </span>
-                  <span className="text-sm font-medium text-foreground truncate">{factor.name}</span>
-                </div>
-                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap flex-shrink-0">
-                  {factor.importance}% importance
+      <CardContent className="space-y-6 py-6">
+        {factors.map((factor, index) => (
+          <div key={index} className="space-y-2.5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-2xl font-bold text-muted-foreground/30 flex-shrink-0">
+                  {index + 1}
                 </span>
+                <span className="text-sm font-medium text-foreground truncate">{factor.name}</span>
               </div>
-              <Progress 
-                value={factor.importance} 
-                className="h-2"
-              />
-              <p className="text-xs text-muted-foreground pl-10">
-                {factor.correlation === "positive" ? "Positively" : "Negatively"} correlated with yield
-              </p>
+              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap flex-shrink-0">
+                {factor.importance}% importance
+              </span>
             </div>
-          ))}
-        </div>
+            <Progress 
+              value={factor.importance} 
+              className="h-2"
+            />
+            <p className="text-xs text-muted-foreground pl-10">
+              {factor.correlation === "positive" ? "Positively" : "Negatively"} correlated with yield
+            </p>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
