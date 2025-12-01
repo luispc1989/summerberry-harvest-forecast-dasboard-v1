@@ -3,19 +3,41 @@ import { Progress } from "@/components/ui/progress";
 
 export const TopInfluencingFactors = () => {
   const factors = [
-    { name: "Temperature", importance: 78, trend: "positive", color: "primary" },
-    { name: "Flower Abortion Rate", importance: 72, trend: "negative", color: "accent" },
-    { name: "Irrigation Volume", importance: 55, trend: "positive", color: "secondary" },
+    {
+      name: "Temperature",
+      importance: 78,
+      correlation: "positive" as const,
+    },
+    {
+      name: "Flower Abortion Rate",
+      importance: 72,
+      correlation: "negative" as const,
+    },
+    {
+      name: "Irrigation Volume",
+      importance: 55,
+      correlation: "positive" as const,
+    },
+    {
+      name: "Humidity",
+      importance: 48,
+      correlation: "positive" as const,
+    },
+    {
+      name: "Solar Radiation",
+      importance: 42,
+      correlation: "positive" as const,
+    },
   ];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top 3 Variables Influencing Yield</CardTitle>
+        <CardTitle>Top 5 Influencing Yield</CardTitle>
         <CardDescription>Based on feature importance analysis</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px] flex items-center">
-        <div className="space-y-6 w-full">
+      <CardContent className="h-[380px] flex items-center">
+        <div className="space-y-5 w-full">
           {factors.map((factor, index) => (
             <div key={index} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -34,7 +56,7 @@ export const TopInfluencingFactors = () => {
                 className="h-2"
               />
               <p className="text-xs text-muted-foreground">
-                {factor.trend === "positive" ? "Positively" : "Negatively"} correlated with yield
+                {factor.correlation === "positive" ? "Positively" : "Negatively"} correlated with yield
               </p>
             </div>
           ))}
