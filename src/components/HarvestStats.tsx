@@ -77,31 +77,38 @@ export const HarvestStats = ({ site, variety, selectedDate, sector, plantType }:
         <CardTitle>7-Day Harvest Statistics</CardTitle>
         <CardDescription>Predicted harvest for the next 7 days</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px] flex gap-4">
-        <div className="space-y-2 flex-1 overflow-y-auto">
-          {stats.predictions.map((pred, index) => (
-            <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-secondary/10 hover:bg-secondary/20 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">{pred.day}</span>
-                <span className="text-xs text-muted-foreground">({pred.date})</span>
+      <CardContent className="h-[340px]">
+        <div className="grid grid-cols-[1fr_auto] gap-6 h-full">
+          <div className="space-y-1.5 overflow-y-auto pr-2">
+            {stats.predictions.map((pred, index) => (
+              <div 
+                key={index} 
+                className="flex justify-between items-center px-4 py-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{pred.day}</span>
+                  <span className="text-xs text-muted-foreground">{pred.date}</span>
+                </div>
+                <span className="text-base font-semibold text-foreground">{pred.value} kg</span>
               </div>
-              <span className="text-sm font-semibold text-foreground">{pred.value} kg</span>
+            ))}
+          </div>
+          
+          <div className="w-44 flex flex-col justify-center gap-6 pl-6 border-l-2 border-border">
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total (7 days)</p>
+              <p className="text-2xl font-bold text-primary">{stats.total} kg</p>
             </div>
-          ))}
-        </div>
-        
-        <div className="w-48 flex flex-col justify-center space-y-4 pl-4 border-l border-border">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Total (7 days)</p>
-            <p className="text-xl font-bold text-primary">{stats.total} kg</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Daily Average</p>
-            <p className="text-lg font-semibold text-foreground">{stats.average} kg</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Std Deviation</p>
-            <p className="text-base font-medium text-accent">±{stats.stdDev} kg</p>
+            
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Daily Average</p>
+              <p className="text-xl font-bold text-foreground">{stats.average} kg</p>
+            </div>
+            
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Std Deviation</p>
+              <p className="text-lg font-bold text-accent">±{stats.stdDev} kg</p>
+            </div>
           </div>
         </div>
       </CardContent>
