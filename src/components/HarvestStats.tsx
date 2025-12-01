@@ -18,7 +18,7 @@ export const HarvestStats = ({ site, variety, selectedDate, sector, plantType }:
         <CardTitle>7-Day Harvest Statistics</CardTitle>
         <CardDescription>Predicted harvest for the next 7 days</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="h-[480px] space-y-6">
         <div className="space-y-1.5">
           {stats.predictions.map((pred, index) => (
             <div 
