@@ -7,10 +7,11 @@ interface HarvestStatsProps {
   selectedDate: Date;
   sector: string;
   plantType: string;
+  plantationDate?: string;
 }
 
-export const HarvestStats = ({ site, variety, selectedDate, sector, plantType }: HarvestStatsProps) => {
-  const stats = calculatePredictions({ site, variety, selectedDate, sector, plantType });
+export const HarvestStats = ({ site, variety, selectedDate, sector, plantType, plantationDate }: HarvestStatsProps) => {
+  const stats = calculatePredictions({ site, variety, selectedDate, sector, plantType, plantationDate });
   
   return (
     <Card>
