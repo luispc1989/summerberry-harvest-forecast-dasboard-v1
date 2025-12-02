@@ -8,15 +8,17 @@ interface ActualVsPredictedChartProps {
   selectedDate: Date;
   sector?: string;
   plantType?: string;
+  plantationDate?: string;
 }
 
-export const ActualVsPredictedChart = ({ site, variety, selectedDate, sector, plantType }: ActualVsPredictedChartProps) => {
+export const ActualVsPredictedChart = ({ site, variety, selectedDate, sector, plantType, plantationDate }: ActualVsPredictedChartProps) => {
   const predictions = calculatePredictions({ 
     site, 
     variety, 
     selectedDate, 
     sector: sector || 'A1', 
-    plantType: plantType || 'gc' 
+    plantType: plantType || 'gc',
+    plantationDate
   });
   
   const data = predictions.predictions.map(pred => ({

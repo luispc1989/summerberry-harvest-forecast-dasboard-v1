@@ -47,6 +47,7 @@ const Index = () => {
                 selectedDate={selectedDate}
                 sector={selectedSector}
                 plantType={selectedPlantType}
+                plantationDate={selectedPlantationDate}
               />
               <div className="grid gap-6 lg:grid-cols-2">
                 <TopInfluencingFactors />
@@ -56,6 +57,7 @@ const Index = () => {
                   selectedDate={selectedDate}
                   sector={selectedSector}
                   plantType={selectedPlantType}
+                  plantationDate={selectedPlantationDate}
                 />
               </div>
             </section>
