@@ -186,7 +186,7 @@ export const FilterSidebar = ({
         <Card className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Upload className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-sidebar-foreground">Data Upload</h3>
+            <h3 className="text-sm font-semibold text-sidebar-foreground">Weekly Prediction Data Upload</h3>
           </div>
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Upload CSV or XLSX file</Label>
