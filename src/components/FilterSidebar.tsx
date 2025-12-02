@@ -2,24 +2,33 @@ import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload } from "luci
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface FilterSidebarProps {
   selectedSite: string;
   selectedVariety: string;
   selectedSector: string;
   selectedPlantType: string;
-  selectedPlantationDate: Date | undefined;
+  selectedPlantationDate: string;
   onSiteChange: (value: string) => void;
   onVarietyChange: (value: string) => void;
   onSectorChange: (value: string) => void;
   onPlantTypeChange: (value: string) => void;
-  onPlantationDateChange: (date: Date | undefined) => void;
+  onPlantationDateChange: (date: string) => void;
 }
+
+const plantationDates = [
+  "2020-09-24", "2020-09-26", "2020-09-30", "2020-10-28", "2020-10-29",
+  "2021-02-02", "2021-02-04", "2021-02-05", "2021-02-11", "2021-03-05",
+  "2021-03-12", "2021-03-16", "2021-03-17", "2021-07-08", "2021-08-06",
+  "2021-09-17", "2021-09-23", "2021-09-30", "2021-10-02", "2021-10-05",
+  "2021-10-07", "2021-10-08", "2021-10-14", "2021-10-21", "2021-10-29",
+  "2021-11-12", "2021-12-06", "2021-12-09", "2022-01-04", "2022-01-19",
+  "2022-02-03", "2022-02-17", "2022-02-18", "2022-03-16", "2022-03-27",
+  "2022-03-31", "2022-04-09", "2022-04-24", "2022-04-29", "2022-05-27",
+  "2022-08-15", "2022-08-17", "2022-08-18", "2022-08-21", "2022-08-23",
+  "2022-08-24", "2022-08-25", "2022-08-26", "2022-08-27", "2022-08-29",
+  "2022-08-30", "2022-08-31", "2022-09-01", "2022-09-05", "2022-09-06"
+];
 
 const admSectors = [
   'A1', 'B2', 'A2', 'B1', 'C1', 'B3', 'B4', 'D3', 'D2', 'A3', 'C2', 'E3',
@@ -161,29 +170,16 @@ export const FilterSidebar = ({
               <CalendarDays className="h-4 w-4 text-primary" />
               Plantation Date
             </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !selectedPlantationDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  {selectedPlantationDate ? format(selectedPlantationDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedPlantationDate}
-                  onSelect={onPlantationDateChange}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <Select value={selectedPlantationDate} onValueChange={onPlantationDateChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select plantation date" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {plantationDates.map((date) => (
+                  <SelectItem key={date} value={date}>{date}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </Card>
 

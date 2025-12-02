@@ -11,7 +11,7 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSector, setSelectedSector] = useState("A1");
   const [selectedPlantType, setSelectedPlantType] = useState("gc");
-  const [selectedPlantationDate, setSelectedPlantationDate] = useState<Date | undefined>(new Date('2024-07-15'));
+  const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
 
   // Update sector when site changes
   const handleSiteChange = (value: string) => {
