@@ -95,14 +95,20 @@ export const FilterSidebar = ({
   const sectorOptions = selectedSite === 'adm' ? admSectors : almSectors;
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast.error("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    // Check file type
+    const validTypes = ['.csv', '.xlsx', '.xls'];
+    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!validTypes.includes(extension)) {
+      toast.error("Invalid file type. Please upload CSV or XLSX files.");
       return;
     }
 
@@ -120,7 +126,41 @@ export const FilterSidebar = ({
       toast.error(error instanceof Error ? error.message : "Failed to parse file");
     } finally {
       setIsLoading(false);
-      e.target.value = '';
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await processFile(file);
     }
   };
 
@@ -251,7 +291,17 @@ export const FilterSidebar = ({
                 </div>
               </div>
             ) : (
-              <div className={`border-2 border-dashed border-border rounded-lg p-4 hover:border-primary/50 transition-colors ${isLoading ? 'opacity-50' : 'cursor-pointer'}`}>
+              <div 
+                className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
+                  isDragging 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-border hover:border-primary/50'
+                } ${isLoading ? 'opacity-50' : 'cursor-pointer'}`}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <input
                   type="file"
                   accept=".csv,.xlsx,.xls"
@@ -264,9 +314,9 @@ export const FilterSidebar = ({
                   htmlFor="file-upload"
                   className={`flex flex-col items-center gap-2 ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
                 >
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                  <span className="text-xs text-center text-muted-foreground">
-                    {isLoading ? 'Processing...' : 'Click to upload or drag and drop'}
+                  <Upload className={`h-8 w-8 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className={`text-xs text-center transition-colors ${isDragging ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {isLoading ? 'Processing...' : isDragging ? 'Drop file here' : 'Click to upload or drag and drop'}
                   </span>
                   <span className="text-xs text-center text-muted-foreground">
                     CSV, XLSX (max 10MB)
