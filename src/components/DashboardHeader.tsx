@@ -5,6 +5,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/summerberry-logo.png";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface DashboardHeaderProps {
   date: Date;
@@ -46,6 +47,7 @@ export const DashboardHeader = ({ date, onDateChange }: DashboardHeaderProps) =>
               />
             </PopoverContent>
           </Popover>
+          <ThemeToggle />
         </div>
       </div>
     </header>
