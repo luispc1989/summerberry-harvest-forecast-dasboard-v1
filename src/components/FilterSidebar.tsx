@@ -1,7 +1,11 @@
-import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload } from "lucide-react";
+import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload, FileCheck, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { parseFile, ParsedFileData } from "@/utils/fileParser";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface FilterSidebarProps {
   selectedSite: string;
@@ -14,6 +18,7 @@ interface FilterSidebarProps {
   onSectorChange: (value: string) => void;
   onPlantTypeChange: (value: string) => void;
   onPlantationDateChange: (date: string) => void;
+  onFileUpload?: (data: ParsedFileData | null) => void;
 }
 
 const plantationDates = [
@@ -84,9 +89,47 @@ export const FilterSidebar = ({
   onVarietyChange, 
   onSectorChange,
   onPlantTypeChange,
-  onPlantationDateChange
+  onPlantationDateChange,
+  onFileUpload
 }: FilterSidebarProps) => {
   const sectorOptions = selectedSite === 'adm' ? admSectors : almSectors;
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const parsedData = await parseFile(file);
+      if (parsedData.predictions.length === 0) {
+        toast.error("No valid prediction data found in file.");
+        return;
+      }
+      setUploadedFileName(parsedData.fileName);
+      onFileUpload?.(parsedData);
+      toast.success(`Loaded ${parsedData.predictions.length} predictions from ${parsedData.fileName}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to parse file");
+    } finally {
+      setIsLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleClearFile = () => {
+    setUploadedFileName(null);
+    onFileUpload?.(null);
+    toast.info("Using mock prediction data");
+  };
+
   return (
     <aside className="w-72 border-r border-sidebar-border bg-sidebar p-6">
       <div className="space-y-6">
@@ -190,32 +233,47 @@ export const FilterSidebar = ({
           </div>
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Upload CSV or XLSX file</Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer">
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-                id="file-upload"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    console.log("File selected:", file.name);
-                  }
-                }}
-              />
-              <label
-                htmlFor="file-upload"
-                className="flex flex-col items-center gap-2 cursor-pointer"
-              >
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <span className="text-xs text-center text-muted-foreground">
-                  Click to upload or drag and drop
-                </span>
-                <span className="text-xs text-center text-muted-foreground">
-                  CSV, XLSX (max 10MB)
-                </span>
-              </label>
-            </div>
+            {uploadedFileName ? (
+              <div className="border border-primary/50 bg-primary/5 rounded-lg p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileCheck className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span className="text-xs text-foreground truncate">{uploadedFileName}</span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 flex-shrink-0"
+                    onClick={handleClearFile}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className={`border-2 border-dashed border-border rounded-lg p-4 hover:border-primary/50 transition-colors ${isLoading ? 'opacity-50' : 'cursor-pointer'}`}>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  id="file-upload"
+                  onChange={handleFileChange}
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className={`flex flex-col items-center gap-2 ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
+                >
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-xs text-center text-muted-foreground">
+                    {isLoading ? 'Processing...' : 'Click to upload or drag and drop'}
+                  </span>
+                  <span className="text-xs text-center text-muted-foreground">
+                    CSV, XLSX (max 10MB)
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
         </Card>
       </div>
