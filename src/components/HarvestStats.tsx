@@ -1,5 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculatePredictions } from "@/utils/predictionCalculations";
+import { ParsedFileData } from "@/utils/fileParser";
+import { format, parseISO } from "date-fns";
 
 interface HarvestStatsProps {
   site: string;
@@ -8,10 +10,25 @@ interface HarvestStatsProps {
   sector: string;
   plantType: string;
   plantationDate?: string;
+  uploadedData?: ParsedFileData | null;
 }
 
-export const HarvestStats = ({ site, variety, selectedDate, sector, plantType, plantationDate }: HarvestStatsProps) => {
-  const stats = calculatePredictions({ site, variety, selectedDate, sector, plantType, plantationDate });
+export const HarvestStats = ({ site, variety, selectedDate, sector, plantType, plantationDate, uploadedData }: HarvestStatsProps) => {
+  // Use uploaded data if available, otherwise use mock predictions
+  const stats = uploadedData?.predictions 
+    ? {
+        predictions: uploadedData.predictions.map((pred, index) => {
+          const date = parseISO(pred.date);
+          return {
+            day: format(date, 'EEEE'),
+            date: pred.date,
+            value: Math.round(pred.predicted)
+          };
+        }),
+        total: Math.round(uploadedData.predictions.reduce((sum, p) => sum + p.predicted, 0)),
+        average: Math.round(uploadedData.predictions.reduce((sum, p) => sum + p.predicted, 0) / uploadedData.predictions.length)
+      }
+    : calculatePredictions({ site, variety, selectedDate, sector, plantType, plantationDate });
   
   return (
     <Card>
