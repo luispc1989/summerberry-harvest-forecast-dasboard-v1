@@ -292,16 +292,19 @@ export const FilterSidebar = ({
               </div>
             ) : (
               <div 
-                className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
+                className={`relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 ease-out ${
                   isDragging 
-                    ? 'border-primary bg-primary/10' 
-                    : 'border-border hover:border-primary/50'
+                    ? 'border-primary bg-primary/15 scale-[1.02] shadow-lg shadow-primary/20' 
+                    : 'border-border hover:border-primary/50 hover:bg-muted/30'
                 } ${isLoading ? 'opacity-50' : 'cursor-pointer'}`}
                 onDragOver={handleDragOver}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
+                {isDragging && (
+                  <div className="absolute inset-0 rounded-lg bg-primary/5 animate-pulse pointer-events-none" />
+                )}
                 <input
                   type="file"
                   accept=".csv,.xlsx,.xls"
@@ -312,14 +315,35 @@ export const FilterSidebar = ({
                 />
                 <label
                   htmlFor="file-upload"
-                  className={`flex flex-col items-center gap-2 ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
+                  className={`relative flex flex-col items-center gap-3 ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
                 >
-                  <Upload className={`h-8 w-8 transition-colors ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className={`text-xs text-center transition-colors ${isDragging ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                    {isLoading ? 'Processing...' : isDragging ? 'Drop file here' : 'Click to upload or drag and drop'}
-                  </span>
-                  <span className="text-xs text-center text-muted-foreground">
-                    CSV, XLSX (max 10MB)
+                  <div className={`p-3 rounded-full transition-all duration-200 ${
+                    isDragging 
+                      ? 'bg-primary/20 scale-110' 
+                      : 'bg-muted/50'
+                  }`}>
+                    <Upload className={`h-6 w-6 transition-all duration-200 ${
+                      isDragging 
+                        ? 'text-primary -translate-y-0.5' 
+                        : 'text-muted-foreground'
+                    }`} />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <span className={`text-sm font-medium transition-colors duration-200 ${
+                      isDragging ? 'text-primary' : 'text-foreground'
+                    }`}>
+                      {isLoading ? 'Processing...' : isDragging ? 'Drop to upload' : 'Drop file here'}
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      {isDragging ? 'Release to upload your file' : 'or click to browse'}
+                    </p>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
+                    isDragging 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    CSV, XLSX • Max 10MB
                   </span>
                 </label>
               </div>
