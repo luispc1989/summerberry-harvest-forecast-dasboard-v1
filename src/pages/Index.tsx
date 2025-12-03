@@ -4,7 +4,6 @@ import { FilterSidebar } from "@/components/FilterSidebar";
 import { ActualVsPredictedChart } from "@/components/ActualVsPredictedChart";
 import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
 import { HarvestStats } from "@/components/HarvestStats";
-import { ParsedFileData } from "@/utils/fileParser";
 
 const Index = () => {
   const [selectedSite, setSelectedSite] = useState("adm");
@@ -13,7 +12,6 @@ const Index = () => {
   const [selectedSector, setSelectedSector] = useState("A1");
   const [selectedPlantType, setSelectedPlantType] = useState("gc");
   const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
-  const [uploadedData, setUploadedData] = useState<ParsedFileData | null>(null);
 
   // Update sector when site changes
   const handleSiteChange = (value: string) => {
@@ -38,7 +36,6 @@ const Index = () => {
           onSectorChange={setSelectedSector}
           onPlantTypeChange={setSelectedPlantType}
           onPlantationDateChange={setSelectedPlantationDate}
-          onFileUpload={setUploadedData}
         />
         
         <main className="flex-1 overflow-y-auto bg-background">
@@ -51,7 +48,6 @@ const Index = () => {
                 sector={selectedSector}
                 plantType={selectedPlantType}
                 plantationDate={selectedPlantationDate}
-                uploadedData={uploadedData}
               />
               <div className="grid gap-6 lg:grid-cols-2">
                 <TopInfluencingFactors />
@@ -62,7 +58,6 @@ const Index = () => {
                   sector={selectedSector}
                   plantType={selectedPlantType}
                   plantationDate={selectedPlantationDate}
-                  uploadedData={uploadedData}
                 />
               </div>
             </section>
