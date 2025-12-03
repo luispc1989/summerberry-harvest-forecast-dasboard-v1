@@ -1,7 +1,10 @@
-import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays } from "lucide-react";
+import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload, FileCheck, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface FilterSidebarProps {
   selectedSite: string;
@@ -14,6 +17,7 @@ interface FilterSidebarProps {
   onSectorChange: (value: string) => void;
   onPlantTypeChange: (value: string) => void;
   onPlantationDateChange: (date: string) => void;
+  onFileUpload?: (file: File | null) => void;
 }
 
 const plantationDates = [
@@ -84,9 +88,73 @@ export const FilterSidebar = ({
   onVarietyChange, 
   onSectorChange,
   onPlantTypeChange,
-  onPlantationDateChange
+  onPlantationDateChange,
+  onFileUpload
 }: FilterSidebarProps) => {
   const sectorOptions = selectedSite === 'adm' ? admSectors : almSectors;
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFile = (file: File) => {
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    // Check file type
+    const validTypes = ['.csv', '.xlsx', '.xls'];
+    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!validTypes.includes(extension)) {
+      toast.error("Invalid file type. Please upload CSV or XLSX files.");
+      return;
+    }
+
+    setUploadedFileName(file.name);
+    onFileUpload?.(file);
+    toast.success(`File "${file.name}" uploaded successfully`);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processFile(file);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleClearFile = () => {
+    setUploadedFileName(null);
+    onFileUpload?.(null);
+    toast.info("File removed");
+  };
 
   return (
     <aside className="w-72 border-r border-sidebar-border bg-sidebar p-6">
@@ -181,6 +249,90 @@ export const FilterSidebar = ({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </Card>
+
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Upload className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-sidebar-foreground">Weekly Data Upload</h3>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Upload CSV or XLSX file</Label>
+            {uploadedFileName ? (
+              <div className="border border-primary/50 bg-primary/5 rounded-lg p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileCheck className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span className="text-xs text-foreground truncate">{uploadedFileName}</span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 flex-shrink-0"
+                    onClick={handleClearFile}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div 
+                className={`relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 ease-out ${
+                  isDragging 
+                    ? 'border-primary bg-primary/15 scale-[1.02] shadow-lg shadow-primary/20' 
+                    : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                } cursor-pointer`}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {isDragging && (
+                  <div className="absolute inset-0 rounded-lg bg-primary/5 animate-pulse pointer-events-none" />
+                )}
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  id="file-upload"
+                  onChange={handleFileChange}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="relative flex flex-col items-center gap-3 cursor-pointer"
+                >
+                  <div className={`p-3 rounded-full transition-all duration-200 ${
+                    isDragging 
+                      ? 'bg-primary/20 scale-110' 
+                      : 'bg-muted/50'
+                  }`}>
+                    <Upload className={`h-6 w-6 transition-all duration-200 ${
+                      isDragging 
+                        ? 'text-primary -translate-y-0.5' 
+                        : 'text-muted-foreground'
+                    }`} />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <span className={`text-sm font-medium transition-colors duration-200 ${
+                      isDragging ? 'text-primary' : 'text-foreground'
+                    }`}>
+                      {isDragging ? 'Drop to upload' : 'Drop file here'}
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      {isDragging ? 'Release to upload your file' : 'or click to browse'}
+                    </p>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
+                    isDragging 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    CSV, XLSX • Max 10MB
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
         </Card>
       </div>
