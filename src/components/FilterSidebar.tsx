@@ -1,10 +1,11 @@
-import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload, FileCheck, X } from "lucide-react";
+import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload, FileCheck, X, FileSpreadsheet, CheckCircle2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface FilterSidebarProps {
   selectedSite: string;
@@ -94,6 +95,17 @@ export const FilterSidebar = ({
   const sectorOptions = selectedSite === 'adm' ? admSectors : almSectors;
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [dragCounter, setDragCounter] = useState(0);
+
+  // Reset success state after animation
+  useEffect(() => {
+    if (uploadSuccess) {
+      const timer = setTimeout(() => setUploadSuccess(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadSuccess]);
 
   const processFile = (file: File) => {
     // Check file size (max 10MB)
@@ -110,9 +122,15 @@ export const FilterSidebar = ({
       return;
     }
 
-    setUploadedFileName(file.name);
-    onFileUpload?.(file);
-    toast.success(`File "${file.name}" uploaded successfully`);
+    // Simulate upload with animation
+    setIsUploading(true);
+    setTimeout(() => {
+      setIsUploading(false);
+      setUploadSuccess(true);
+      setUploadedFileName(file.name);
+      onFileUpload?.(file);
+      toast.success(`File "${file.name}" uploaded successfully`);
+    }, 800);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,19 +148,27 @@ export const FilterSidebar = ({
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setDragCounter(prev => prev + 1);
     setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    setDragCounter(prev => {
+      const newCount = prev - 1;
+      if (newCount === 0) {
+        setIsDragging(false);
+      }
+      return newCount;
+    });
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    setDragCounter(0);
 
     const file = e.dataTransfer.files?.[0];
     if (file) {
@@ -260,16 +286,32 @@ export const FilterSidebar = ({
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Upload CSV or XLSX file</Label>
             {uploadedFileName ? (
-              <div className="border border-primary/50 bg-primary/5 rounded-lg p-3">
+              <div className={cn(
+                "border rounded-lg p-3 transition-all duration-300",
+                uploadSuccess 
+                  ? "border-primary bg-primary/10 scale-[1.02]" 
+                  : "border-primary/50 bg-primary/5"
+              )}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileCheck className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-xs text-foreground truncate">{uploadedFileName}</span>
+                    <div className={cn(
+                      "p-1.5 rounded-md transition-all duration-300",
+                      uploadSuccess ? "bg-primary/20" : "bg-primary/10"
+                    )}>
+                      <FileSpreadsheet className={cn(
+                        "h-4 w-4 transition-all duration-300",
+                        uploadSuccess ? "text-primary scale-110" : "text-primary"
+                      )} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium text-foreground truncate block">{uploadedFileName}</span>
+                      <span className="text-[10px] text-muted-foreground">Ready to process</span>
+                    </div>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-6 w-6 flex-shrink-0"
+                    className="h-7 w-7 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
                     onClick={handleClearFile}
                   >
                     <X className="h-4 w-4" />
@@ -278,56 +320,86 @@ export const FilterSidebar = ({
               </div>
             ) : (
               <div 
-                className={`relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 ease-out ${
-                  isDragging 
-                    ? 'border-primary bg-primary/15 scale-[1.02] shadow-lg shadow-primary/20' 
-                    : 'border-border hover:border-primary/50 hover:bg-muted/30'
-                } cursor-pointer`}
+                className={cn(
+                  "relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 ease-out cursor-pointer overflow-hidden",
+                  isDragging && "border-primary bg-primary/10 scale-[1.02] shadow-lg shadow-primary/20",
+                  isUploading && "border-primary bg-primary/5 pointer-events-none",
+                  !isDragging && !isUploading && "border-border hover:border-primary/50 hover:bg-muted/30"
+                )}
                 onDragOver={handleDragOver}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
+                {/* Animated background effect when dragging */}
                 {isDragging && (
-                  <div className="absolute inset-0 rounded-lg bg-primary/5 animate-pulse pointer-events-none" />
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 animate-pulse" />
+                    <div className="absolute inset-0 border-2 border-primary/30 rounded-xl animate-[ping_1.5s_ease-in-out_infinite]" />
+                  </>
                 )}
+                
+                {/* Upload progress animation */}
+                {isUploading && (
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-muted overflow-hidden rounded-b-xl">
+                    <div className="h-full bg-primary animate-[loading_0.8s_ease-in-out]" 
+                      style={{ 
+                        animation: 'loading 0.8s ease-in-out forwards',
+                      }} 
+                    />
+                  </div>
+                )}
+                
                 <input
                   type="file"
                   accept=".csv,.xlsx,.xls"
                   className="hidden"
                   id="file-upload"
                   onChange={handleFileChange}
+                  disabled={isUploading}
                 />
                 <label
                   htmlFor="file-upload"
-                  className="relative flex flex-col items-center gap-3 cursor-pointer"
+                  className={cn(
+                    "relative flex flex-col items-center gap-3 cursor-pointer",
+                    isUploading && "cursor-wait"
+                  )}
                 >
-                  <div className={`p-3 rounded-full transition-all duration-200 ${
-                    isDragging 
-                      ? 'bg-primary/20 scale-110' 
-                      : 'bg-muted/50'
-                  }`}>
-                    <Upload className={`h-6 w-6 transition-all duration-200 ${
-                      isDragging 
-                        ? 'text-primary -translate-y-0.5' 
-                        : 'text-muted-foreground'
-                    }`} />
+                  <div className={cn(
+                    "p-3 rounded-full transition-all duration-300",
+                    isDragging && "bg-primary/20 scale-125 shadow-lg shadow-primary/30",
+                    isUploading && "bg-primary/20 animate-bounce",
+                    !isDragging && !isUploading && "bg-muted/50 group-hover:bg-primary/10"
+                  )}>
+                    {isUploading ? (
+                      <CheckCircle2 className="h-6 w-6 text-primary animate-spin" />
+                    ) : (
+                      <Upload className={cn(
+                        "h-6 w-6 transition-all duration-300",
+                        isDragging && "text-primary -translate-y-1 scale-110",
+                        !isDragging && "text-muted-foreground"
+                      )} />
+                    )}
                   </div>
                   <div className="text-center space-y-1">
-                    <span className={`text-sm font-medium transition-colors duration-200 ${
-                      isDragging ? 'text-primary' : 'text-foreground'
-                    }`}>
-                      {isDragging ? 'Drop to upload' : 'Drop file here'}
+                    <span className={cn(
+                      "text-sm font-medium transition-colors duration-200",
+                      isDragging && "text-primary",
+                      isUploading && "text-primary",
+                      !isDragging && !isUploading && "text-foreground"
+                    )}>
+                      {isUploading ? 'Uploading...' : isDragging ? 'Drop to upload' : 'Drop file here'}
                     </span>
                     <p className="text-xs text-muted-foreground">
-                      {isDragging ? 'Release to upload your file' : 'or click to browse'}
+                      {isUploading ? 'Please wait' : isDragging ? 'Release to upload your file' : 'or click to browse'}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
-                    isDragging 
-                      ? 'bg-primary/20 text-primary' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <span className={cn(
+                    "text-xs px-2.5 py-1 rounded-full transition-all duration-200",
+                    isDragging && "bg-primary/20 text-primary scale-105",
+                    isUploading && "bg-primary/20 text-primary",
+                    !isDragging && !isUploading && "bg-muted text-muted-foreground"
+                  )}>
                     CSV, XLSX • Max 10MB
                   </span>
                 </label>
