@@ -1,34 +1,23 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { InfluencingFactor } from "@/types/api";
 
-export const TopInfluencingFactors = () => {
-  const factors = [
-    {
-      name: "Temperature",
-      importance: 78,
-      correlation: "positive" as const,
-    },
-    {
-      name: "Flower Abortion Rate",
-      importance: 72,
-      correlation: "negative" as const,
-    },
-    {
-      name: "Irrigation Volume",
-      importance: 55,
-      correlation: "positive" as const,
-    },
-    {
-      name: "Humidity",
-      importance: 48,
-      correlation: "positive" as const,
-    },
-    {
-      name: "Solar Radiation",
-      importance: 42,
-      correlation: "positive" as const,
-    },
-  ];
+interface TopInfluencingFactorsProps {
+  // API data - when provided, uses this instead of mock data
+  apiFactors?: InfluencingFactor[];
+}
+
+// Default mock factors when no API data is available
+const defaultFactors: InfluencingFactor[] = [
+  { name: "Temperature", importance: 78, correlation: "positive" },
+  { name: "Flower Abortion Rate", importance: 72, correlation: "negative" },
+  { name: "Irrigation Volume", importance: 55, correlation: "positive" },
+  { name: "Humidity", importance: 48, correlation: "positive" },
+  { name: "Solar Radiation", importance: 42, correlation: "positive" },
+];
+
+export const TopInfluencingFactors = ({ apiFactors }: TopInfluencingFactorsProps) => {
+  const factors = apiFactors || defaultFactors;
 
   return (
     <Card>

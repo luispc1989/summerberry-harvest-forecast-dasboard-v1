@@ -1,28 +1,45 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { DailyPrediction } from "@/types/api";
 import { calculatePredictions } from "@/utils/predictionCalculations";
 
-interface ActualVsPredictedChartProps {
+interface PredictedHarvestChartProps {
   site: string;
   variety: string;
   selectedDate: Date;
   sector?: string;
   plantType?: string;
   plantationDate?: string;
+  // API data - when provided, uses this instead of mock calculations
+  apiPredictions?: DailyPrediction[];
 }
 
-export const ActualVsPredictedChart = ({ site, variety, selectedDate, sector, plantType, plantationDate }: ActualVsPredictedChartProps) => {
-  const data = calculatePredictions({ 
-    site, 
-    variety, 
-    selectedDate, 
-    sector: sector || 'A1', 
-    plantType: plantType || 'gc',
-    plantationDate
-  }).predictions.map(pred => ({
-    date: pred.date,
-    predicted: pred.value,
-  }));
+export const PredictedHarvestChart = ({ 
+  site, 
+  variety, 
+  selectedDate, 
+  sector, 
+  plantType, 
+  plantationDate,
+  apiPredictions 
+}: PredictedHarvestChartProps) => {
+  // Use API data if available, otherwise fall back to mock calculations
+  const data = apiPredictions 
+    ? apiPredictions.map(pred => ({
+        date: pred.date,
+        predicted: pred.value,
+      }))
+    : calculatePredictions({ 
+        site, 
+        variety, 
+        selectedDate, 
+        sector: sector || 'A1', 
+        plantType: plantType || 'gc',
+        plantationDate
+      }).predictions.map(pred => ({
+        date: pred.date,
+        predicted: pred.value,
+      }));
   
   return (
     <Card className="col-span-2">
