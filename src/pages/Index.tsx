@@ -112,11 +112,36 @@ const Index = () => {
             {isProcessing ? (
               <LoadingState />
             ) : error ? (
-              <ErrorState message={error} onRetry={handleProcessData} />
-            ) : !apiData ? (
-              <EmptyState />
+              <div className="space-y-6">
+                <ErrorState message={error} onRetry={handleProcessData} />
+                <section className="space-y-6">
+                  <PredictedHarvestChart 
+                    site={selectedSite} 
+                    variety={selectedVariety}
+                    selectedDate={selectedDate}
+                    sector={selectedSector}
+                    plantType={selectedPlantType}
+                    plantationDate={selectedPlantationDate}
+                    apiPredictions={apiData?.predictions}
+                  />
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <TopInfluencingFactors apiFactors={apiData?.factors} />
+                    <HarvestStats 
+                      site={selectedSite}
+                      variety={selectedVariety}
+                      selectedDate={selectedDate}
+                      sector={selectedSector}
+                      plantType={selectedPlantType}
+                      plantationDate={selectedPlantationDate}
+                      apiPredictions={apiData?.predictions}
+                      apiTotal={apiData?.total}
+                      apiAverage={apiData?.average}
+                    />
+                  </div>
+                </section>
+              </div>
             ) : (
-              <section className="space-y-6 animate-in fade-in duration-300">
+              <section className="space-y-6">
                 <PredictedHarvestChart 
                   site={selectedSite} 
                   variety={selectedVariety}
