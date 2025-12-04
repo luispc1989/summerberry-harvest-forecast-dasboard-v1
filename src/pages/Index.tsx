@@ -4,6 +4,7 @@ import { FilterSidebar } from "@/components/FilterSidebar";
 import { ActualVsPredictedChart } from "@/components/ActualVsPredictedChart";
 import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
 import { HarvestStats } from "@/components/HarvestStats";
+import { toast } from "sonner";
 
 const Index = () => {
   const [selectedSite, setSelectedSite] = useState("adm");
@@ -12,12 +13,31 @@ const Index = () => {
   const [selectedSector, setSelectedSector] = useState("A1");
   const [selectedPlantType, setSelectedPlantType] = useState("gc");
   const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Update sector when site changes
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
     // Set first sector based on site
     setSelectedSector(value === 'adm' ? 'A1' : '1.1');
+  };
+
+  const handleFileUpload = (file: File | null) => {
+    setUploadedFile(file);
+  };
+
+  const handleProcessData = async () => {
+    if (!uploadedFile) return;
+    
+    setIsProcessing(true);
+    // TODO: This will call the ML backend API for predictions
+    // Simulating processing time for now
+    setTimeout(() => {
+      setIsProcessing(false);
+      toast.success("Predictions processed successfully!");
+      // Here you would update the dashboard with new predictions
+    }, 2000);
   };
 
   return (
@@ -36,6 +56,9 @@ const Index = () => {
           onSectorChange={setSelectedSector}
           onPlantTypeChange={setSelectedPlantType}
           onPlantationDateChange={setSelectedPlantationDate}
+          onFileUpload={handleFileUpload}
+          onProcessData={handleProcessData}
+          isProcessing={isProcessing}
         />
         
         <main className="flex-1 overflow-y-auto bg-background">

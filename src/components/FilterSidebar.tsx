@@ -1,4 +1,4 @@
-import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload, FileCheck, X, FileSpreadsheet, CheckCircle2 } from "lucide-react";
+import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload, FileCheck, X, FileSpreadsheet, CheckCircle2, Play, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -19,6 +19,8 @@ interface FilterSidebarProps {
   onPlantTypeChange: (value: string) => void;
   onPlantationDateChange: (date: string) => void;
   onFileUpload?: (file: File | null) => void;
+  onProcessData?: () => void;
+  isProcessing?: boolean;
 }
 
 const plantationDates = [
@@ -90,7 +92,9 @@ export const FilterSidebar = ({
   onSectorChange,
   onPlantTypeChange,
   onPlantationDateChange,
-  onFileUpload
+  onFileUpload,
+  onProcessData,
+  isProcessing = false
 }: FilterSidebarProps) => {
   const sectorOptions = selectedSite === 'adm' ? admSectors : almSectors;
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -286,37 +290,57 @@ export const FilterSidebar = ({
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Upload CSV or XLSX file</Label>
             {uploadedFileName ? (
-              <div className={cn(
-                "border rounded-lg p-3 transition-all duration-300",
-                uploadSuccess 
-                  ? "border-primary bg-primary/10 scale-[1.02]" 
-                  : "border-primary/50 bg-primary/5"
-              )}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn(
-                      "p-1.5 rounded-md transition-all duration-300",
-                      uploadSuccess ? "bg-primary/20" : "bg-primary/10"
-                    )}>
-                      <FileSpreadsheet className={cn(
-                        "h-4 w-4 transition-all duration-300",
-                        uploadSuccess ? "text-primary scale-110" : "text-primary"
-                      )} />
+              <div className="space-y-3">
+                <div className={cn(
+                  "border rounded-lg p-3 transition-all duration-300",
+                  uploadSuccess 
+                    ? "border-primary bg-primary/10 scale-[1.02]" 
+                    : "border-primary/50 bg-primary/5"
+                )}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={cn(
+                        "p-1.5 rounded-md transition-all duration-300",
+                        uploadSuccess ? "bg-primary/20" : "bg-primary/10"
+                      )}>
+                        <FileSpreadsheet className={cn(
+                          "h-4 w-4 transition-all duration-300",
+                          uploadSuccess ? "text-primary scale-110" : "text-primary"
+                        )} />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-medium text-foreground truncate block">{uploadedFileName}</span>
+                        <span className="text-[10px] text-muted-foreground">Ready to process</span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-xs font-medium text-foreground truncate block">{uploadedFileName}</span>
-                      <span className="text-[10px] text-muted-foreground">Ready to process</span>
-                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      onClick={handleClearFile}
+                      disabled={isProcessing}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-7 w-7 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                    onClick={handleClearFile}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
+                <Button 
+                  className="w-full gap-2"
+                  onClick={onProcessData}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4" />
+                      Process Predictions
+                    </>
+                  )}
+                </Button>
               </div>
             ) : (
               <div 
