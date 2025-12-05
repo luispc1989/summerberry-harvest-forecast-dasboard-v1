@@ -18,7 +18,7 @@ export const DashboardHeader = () => {
             />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">SummerBerry</h1>
+            <h1 className="text-lg font-semibold text-foreground">The Summer Berry Company</h1>
             <p className="text-xs text-muted-foreground">Harvest Forecasting Dashboard</p>
           </div>
         </div>
