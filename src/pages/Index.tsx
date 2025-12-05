@@ -15,9 +15,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 
 const Index = () => {
   const [selectedSite, setSelectedSite] = useState("adm");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSector, setSelectedSector] = useState("A1");
   const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
+  const selectedDate = new Date(); // Today's date, no longer user-selectable
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -84,7 +84,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <DashboardHeader date={selectedDate} onDateChange={setSelectedDate} />
+      <DashboardHeader />
       
       <div className="flex flex-1 overflow-hidden">
         <FilterSidebar
