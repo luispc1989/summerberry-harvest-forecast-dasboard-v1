@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
@@ -17,11 +17,54 @@ import {
 // API base URL - configure this for your local Python backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+// Storage key for persisting last prediction
+const LAST_PREDICTION_KEY = "summerberry_last_prediction";
+
+interface StoredPrediction {
+  predictions: DailyPrediction[];
+  factors: InfluencingFactor[] | null;
+  total: number;
+  average: number;
+  filters: {
+    site: string;
+    sector: string;
+    plantationDate: string;
+  };
+  timestamp: string;
+}
+
+// Load last prediction from localStorage
+const loadLastPrediction = (): StoredPrediction | null => {
+  try {
+    const stored = localStorage.getItem(LAST_PREDICTION_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (err) {
+    console.error("Failed to load last prediction:", err);
+  }
+  return null;
+};
+
+// Save prediction to localStorage
+const saveLastPrediction = (prediction: StoredPrediction) => {
+  try {
+    localStorage.setItem(LAST_PREDICTION_KEY, JSON.stringify(prediction));
+  } catch (err) {
+    console.error("Failed to save prediction:", err);
+  }
+};
+
 const Index = () => {
-  // Default to "All Sites" and "All Sectors"
-  const [selectedSite, setSelectedSite] = useState("all");
-  const [selectedSector, setSelectedSector] = useState("all");
-  const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
+  // Load last prediction on mount
+  const lastPrediction = useMemo(() => loadLastPrediction(), []);
+  
+  // Default to last prediction filters or "All Sites" and "All Sectors"
+  const [selectedSite, setSelectedSite] = useState(lastPrediction?.filters.site || "all");
+  const [selectedSector, setSelectedSector] = useState(lastPrediction?.filters.sector || "all");
+  const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>(
+    lastPrediction?.filters.plantationDate || "2021-07-08"
+  );
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -29,13 +72,23 @@ const Index = () => {
   const selectedDate = useMemo(() => new Date(), []);
   const selectedDateString = useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
   
-  // API response state - stores real predictions from Python backend
-  // When null, components will use mock data as fallback
-  const [predictions, setPredictions] = useState<DailyPrediction[] | null>(null);
-  const [factors, setFactors] = useState<InfluencingFactor[] | null>(null);
-  const [total, setTotal] = useState<number | null>(null);
-  const [average, setAverage] = useState<number | null>(null);
+  // API response state - initialized with last prediction if available
+  const [predictions, setPredictions] = useState<DailyPrediction[] | null>(
+    lastPrediction?.predictions || null
+  );
+  const [factors, setFactors] = useState<InfluencingFactor[] | null>(
+    lastPrediction?.factors || null
+  );
+  const [total, setTotal] = useState<number | null>(
+    lastPrediction?.total ?? null
+  );
+  const [average, setAverage] = useState<number | null>(
+    lastPrediction?.average ?? null
+  );
   const [noData, setNoData] = useState(false);
+  
+  // Track if we're using real API data (has stored prediction)
+  const hasRealPrediction = lastPrediction !== null || predictions !== null;
 
   // Process predictions - only called when user clicks "Process Predictions" button
   const handleProcessData = async () => {
@@ -63,10 +116,6 @@ const Index = () => {
       if (!response.ok) {
         if (response.status === 404) {
           setNoData(true);
-          setPredictions(null);
-          setFactors(null);
-          setTotal(null);
-          setAverage(null);
           toast.info("No prediction available for this selection");
           return;
         }
@@ -78,10 +127,6 @@ const Index = () => {
       // Check if we received empty data
       if (!data || Object.keys(data).length === 0) {
         setNoData(true);
-        setPredictions(null);
-        setFactors(null);
-        setTotal(null);
-        setAverage(null);
         toast.info("No prediction available for this selection");
         return;
       }
@@ -90,10 +135,26 @@ const Index = () => {
       const convertedPredictions = convertBackendPredictions(data);
       const stats = calculateStats(convertedPredictions);
       
+      // Update state
       setPredictions(convertedPredictions);
       setTotal(stats.total);
       setAverage(stats.average);
       setNoData(false);
+      
+      // Save to localStorage for persistence
+      saveLastPrediction({
+        predictions: convertedPredictions,
+        factors: null, // Will be populated when API returns factors
+        total: stats.total,
+        average: stats.average,
+        filters: {
+          site: selectedSite,
+          sector: selectedSector,
+          plantationDate: selectedPlantationDate,
+        },
+        timestamp: new Date().toISOString(),
+      });
+      
       toast.success("Predictions processed successfully!");
       
     } catch (err) {
