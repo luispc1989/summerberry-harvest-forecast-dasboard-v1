@@ -1,4 +1,4 @@
-import { Filter, MapPin, Leaf, Grid3x3, Grape, CalendarDays, Upload, FileCheck, X, FileSpreadsheet, CheckCircle2, Play, Loader2 } from "lucide-react";
+import { Filter, MapPin, Grid3x3, CalendarDays, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -9,14 +9,10 @@ import { cn } from "@/lib/utils";
 
 interface FilterSidebarProps {
   selectedSite: string;
-  selectedVariety: string;
   selectedSector: string;
-  selectedPlantType: string;
   selectedPlantationDate: string;
   onSiteChange: (value: string) => void;
-  onVarietyChange: (value: string) => void;
   onSectorChange: (value: string) => void;
-  onPlantTypeChange: (value: string) => void;
   onPlantationDateChange: (date: string) => void;
   onFileUpload?: (file: File | null) => void;
   onProcessData?: () => void;
@@ -73,24 +69,12 @@ const almSectors = [
   '31.1', '31.2', '31.3'
 ];
 
-const plantTypes = [
-  { value: 'gc', label: 'Green Canes (GC)' },
-  { value: 'gt', label: 'Grow Through (GT)' },
-  { value: 'lc', label: 'Long Canes (LC)' },
-  { value: 'rb', label: 'Root Blocks (RB)' },
-  { value: 'sc', label: 'Summer Cutback (SC)' }
-];
-
 export const FilterSidebar = ({ 
   selectedSite, 
-  selectedVariety, 
   selectedSector,
-  selectedPlantType,
   selectedPlantationDate,
   onSiteChange, 
-  onVarietyChange, 
   onSectorChange,
-  onPlantTypeChange,
   onPlantationDateChange,
   onFileUpload,
   onProcessData,
@@ -213,25 +197,6 @@ export const FilterSidebar = ({
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <Leaf className="h-4 w-4 text-primary" />
-              Variety
-            </Label>
-            <Select value={selectedVariety} onValueChange={onVarietyChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select variety" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="a">A</SelectItem>
-                <SelectItem value="b">B</SelectItem>
-                <SelectItem value="c">C</SelectItem>
-                <SelectItem value="d">D</SelectItem>
-                <SelectItem value="e">E</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm font-medium">
               <Grid3x3 className="h-4 w-4 text-primary" />
               Sector
             </Label>
@@ -242,23 +207,6 @@ export const FilterSidebar = ({
               <SelectContent className="max-h-[300px]">
                 {sectorOptions.map((sector) => (
                   <SelectItem key={sector} value={sector}>{sector}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm font-medium">
-              <Grape className="h-4 w-4 text-primary" />
-              Plant Type
-            </Label>
-            <Select value={selectedPlantType} onValueChange={onPlantTypeChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select plant type" />
-              </SelectTrigger>
-              <SelectContent>
-                {plantTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

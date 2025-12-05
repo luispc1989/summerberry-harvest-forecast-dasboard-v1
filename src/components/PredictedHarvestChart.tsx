@@ -5,10 +5,8 @@ import { calculatePredictions } from "@/utils/predictionCalculations";
 
 interface PredictedHarvestChartProps {
   site: string;
-  variety: string;
   selectedDate: Date;
   sector?: string;
-  plantType?: string;
   plantationDate?: string;
   // API data - when provided, uses this instead of mock calculations
   apiPredictions?: DailyPrediction[];
@@ -16,10 +14,8 @@ interface PredictedHarvestChartProps {
 
 export const PredictedHarvestChart = ({ 
   site, 
-  variety, 
   selectedDate, 
   sector, 
-  plantType, 
   plantationDate,
   apiPredictions 
 }: PredictedHarvestChartProps) => {
@@ -31,10 +27,8 @@ export const PredictedHarvestChart = ({
       }))
     : calculatePredictions({ 
         site, 
-        variety, 
         selectedDate, 
         sector: sector || 'A1', 
-        plantType: plantType || 'gc',
         plantationDate
       }).predictions.map(pred => ({
         date: pred.date,

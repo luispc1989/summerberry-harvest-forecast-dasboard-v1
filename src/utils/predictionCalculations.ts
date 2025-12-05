@@ -2,14 +2,12 @@
 
 interface PredictionParams {
   site: string;
-  variety: string;
   selectedDate: Date;
   sector: string;
-  plantType: string;
   plantationDate?: string;
 }
 
-export const calculatePredictions = ({ site, variety, selectedDate, sector, plantType, plantationDate }: PredictionParams) => {
+export const calculatePredictions = ({ site, selectedDate, sector, plantationDate }: PredictionParams) => {
   const basePredicted = 215;
   
   // Apply multipliers based on filters
@@ -18,16 +16,6 @@ export const calculatePredictions = ({ site, variety, selectedDate, sector, plan
   if (site === 'alm') {
     predictedMultiplier *= 1.12;
   }
-  
-  const varietyMultipliers: { [key: string]: number } = {
-    'a': 1.0, 'b': 1.08, 'c': 0.95, 'd': 1.12, 'e': 0.88
-  };
-  predictedMultiplier *= (varietyMultipliers[variety] || 1.0) * 0.98;
-  
-  const plantTypeMultipliers: { [key: string]: number } = {
-    'rb': 1.0, 'gt': 1.05, 'lc': 1.1, 'gc': 0.95, 'sc': 0.92
-  };
-  predictedMultiplier *= (plantTypeMultipliers[plantType] || 1.0);
   
   // Sector variation
   const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
