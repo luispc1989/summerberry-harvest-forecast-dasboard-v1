@@ -15,10 +15,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 
 const Index = () => {
   const [selectedSite, setSelectedSite] = useState("adm");
-  const [selectedVariety, setSelectedVariety] = useState("a");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSector, setSelectedSector] = useState("A1");
-  const [selectedPlantType, setSelectedPlantType] = useState("gc");
   const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -56,9 +54,7 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', uploadedFile);
       formData.append('site', selectedSite);
-      formData.append('variety', selectedVariety);
       formData.append('sector', selectedSector);
-      formData.append('plantType', selectedPlantType);
       formData.append('plantationDate', selectedPlantationDate);
       formData.append('selectedDate', selectedDate.toISOString().split('T')[0]);
       
@@ -93,14 +89,10 @@ const Index = () => {
       <div className="flex flex-1 overflow-hidden">
         <FilterSidebar
           selectedSite={selectedSite}
-          selectedVariety={selectedVariety}
           selectedSector={selectedSector}
-          selectedPlantType={selectedPlantType}
           selectedPlantationDate={selectedPlantationDate}
           onSiteChange={handleSiteChange}
-          onVarietyChange={setSelectedVariety}
           onSectorChange={setSelectedSector}
-          onPlantTypeChange={setSelectedPlantType}
           onPlantationDateChange={setSelectedPlantationDate}
           onFileUpload={handleFileUpload}
           onProcessData={handleProcessData}
@@ -115,12 +107,10 @@ const Index = () => {
               <div className="space-y-6">
                 <ErrorState message={error} onRetry={handleProcessData} />
                 <section className="space-y-6">
-                  <PredictedHarvestChart 
+                <PredictedHarvestChart 
                     site={selectedSite} 
-                    variety={selectedVariety}
                     selectedDate={selectedDate}
                     sector={selectedSector}
-                    plantType={selectedPlantType}
                     plantationDate={selectedPlantationDate}
                     apiPredictions={apiData?.predictions}
                   />
@@ -128,10 +118,8 @@ const Index = () => {
                     <TopInfluencingFactors apiFactors={apiData?.factors} />
                     <HarvestStats 
                       site={selectedSite}
-                      variety={selectedVariety}
                       selectedDate={selectedDate}
                       sector={selectedSector}
-                      plantType={selectedPlantType}
                       plantationDate={selectedPlantationDate}
                       apiPredictions={apiData?.predictions}
                       apiTotal={apiData?.total}
@@ -144,10 +132,8 @@ const Index = () => {
               <section className="space-y-6">
                 <PredictedHarvestChart 
                   site={selectedSite} 
-                  variety={selectedVariety}
                   selectedDate={selectedDate}
                   sector={selectedSector}
-                  plantType={selectedPlantType}
                   plantationDate={selectedPlantationDate}
                   apiPredictions={apiData?.predictions}
                 />
@@ -155,10 +141,8 @@ const Index = () => {
                   <TopInfluencingFactors apiFactors={apiData?.factors} />
                   <HarvestStats 
                     site={selectedSite}
-                    variety={selectedVariety}
                     selectedDate={selectedDate}
                     sector={selectedSector}
-                    plantType={selectedPlantType}
                     plantationDate={selectedPlantationDate}
                     apiPredictions={apiData?.predictions}
                     apiTotal={apiData?.total}

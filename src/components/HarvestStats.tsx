@@ -4,10 +4,8 @@ import { DailyPrediction } from "@/types/api";
 
 interface HarvestStatsProps {
   site: string;
-  variety: string;
   selectedDate: Date;
   sector: string;
-  plantType: string;
   plantationDate?: string;
   // API data - when provided, uses this instead of mock calculations
   apiPredictions?: DailyPrediction[];
@@ -17,17 +15,15 @@ interface HarvestStatsProps {
 
 export const HarvestStats = ({ 
   site, 
-  variety, 
   selectedDate, 
   sector, 
-  plantType, 
   plantationDate,
   apiPredictions,
   apiTotal,
   apiAverage
 }: HarvestStatsProps) => {
   // Use API data if available, otherwise fall back to mock calculations
-  const mockStats = calculatePredictions({ site, variety, selectedDate, sector, plantType, plantationDate });
+  const mockStats = calculatePredictions({ site, selectedDate, sector, plantationDate });
   
   const predictions = apiPredictions || mockStats.predictions;
   const total = apiTotal ?? mockStats.total;
