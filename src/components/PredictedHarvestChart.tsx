@@ -26,9 +26,9 @@ export const PredictedHarvestChart = ({
         predicted: pred.value,
       }))
     : calculatePredictions({ 
-        site: site === 'all' ? 'adm' : site, 
+        site, 
         selectedDate, 
-        sector: sector === 'all' ? 'A1' : (sector || 'A1'), 
+        sector: sector || 'all', 
         plantationDate
       }).predictions.map(pred => ({
         date: pred.date,
