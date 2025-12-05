@@ -27,11 +27,13 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   
   // API response state - stores real predictions from Python backend
+  // When null, components will use mock data as fallback
   const [predictions, setPredictions] = useState<DailyPrediction[] | null>(null);
   const [factors, setFactors] = useState<InfluencingFactor[] | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [average, setAverage] = useState<number | null>(null);
   const [noData, setNoData] = useState(false);
+  const [usingMockData, setUsingMockData] = useState(true);
 
   // Fetch predictions from backend
   const fetchPredictions = useCallback(async () => {
@@ -71,8 +73,8 @@ const Index = () => {
       
       if (!response.ok) {
         if (response.status === 404) {
-          // No data for this selection
-          setNoData(true);
+          // No data for this selection - use mock data
+          setUsingMockData(true);
           setPredictions(null);
           setFactors(null);
           setTotal(null);
@@ -86,7 +88,7 @@ const Index = () => {
       
       // Check if we received empty data
       if (!data || Object.keys(data).length === 0) {
-        setNoData(true);
+        setUsingMockData(true);
         setPredictions(null);
         setFactors(null);
         setTotal(null);
@@ -102,11 +104,12 @@ const Index = () => {
       setTotal(stats.total);
       setAverage(stats.average);
       setNoData(false);
+      setUsingMockData(false);
       
     } catch (err) {
-      console.error('Prediction API error:', err);
-      // On error, show no data message instead of error
-      setNoData(true);
+      // Backend not available - use mock data (this is expected during development)
+      console.log('Backend not available, using mock data');
+      setUsingMockData(true);
       setPredictions(null);
       setFactors(null);
       setTotal(null);
@@ -135,7 +138,9 @@ const Index = () => {
   const handleProcessData = async () => {
     if (!uploadedFile) return;
     await fetchPredictions();
-    toast.success("Predictions processed successfully!");
+    if (!usingMockData) {
+      toast.success("Predictions processed successfully!");
+    }
   };
 
   return (

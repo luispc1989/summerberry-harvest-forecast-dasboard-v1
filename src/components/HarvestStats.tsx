@@ -24,9 +24,9 @@ export const HarvestStats = ({
 }: HarvestStatsProps) => {
   // Use API data if available, otherwise fall back to mock calculations
   const mockStats = calculatePredictions({ 
-    site: site === 'all' ? 'adm' : site, 
+    site, 
     selectedDate, 
-    sector: sector === 'all' ? 'A1' : sector, 
+    sector, 
     plantationDate 
   });
   
