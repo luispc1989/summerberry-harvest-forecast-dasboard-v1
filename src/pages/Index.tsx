@@ -1,85 +1,141 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
 import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
 import { HarvestStats } from "@/components/HarvestStats";
 import { LoadingState } from "@/components/LoadingState";
-import { ErrorState } from "@/components/ErrorState";
-import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
-import { PredictionResponse } from "@/types/api";
+import { 
+  DailyPrediction, 
+  BackendPredictionResponse, 
+  convertBackendPredictions, 
+  calculateStats,
+  InfluencingFactor
+} from "@/types/api";
 
 // API base URL - configure this for your local Python backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const Index = () => {
-  const [selectedSite, setSelectedSite] = useState("adm");
-  const [selectedSector, setSelectedSector] = useState("A1");
+  // Default to "All Sites" and "All Sectors"
+  const [selectedSite, setSelectedSite] = useState("all");
+  const [selectedSector, setSelectedSector] = useState("all");
   const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
   const selectedDate = new Date(); // Today's date, no longer user-selectable
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // API response state - stores real predictions from Python backend
-  const [apiData, setApiData] = useState<PredictionResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [predictions, setPredictions] = useState<DailyPrediction[] | null>(null);
+  const [factors, setFactors] = useState<InfluencingFactor[] | null>(null);
+  const [total, setTotal] = useState<number | null>(null);
+  const [average, setAverage] = useState<number | null>(null);
+  const [noData, setNoData] = useState(false);
+
+  // Fetch predictions from backend
+  const fetchPredictions = useCallback(async () => {
+    setIsProcessing(true);
+    setNoData(false);
+    
+    try {
+      // Build query params
+      const params = new URLSearchParams({
+        site: selectedSite,
+        sector: selectedSector,
+        plantationDate: selectedPlantationDate,
+        selectedDate: selectedDate.toISOString().split('T')[0]
+      });
+      
+      // If there's an uploaded file, use POST with FormData
+      let response: Response;
+      
+      if (uploadedFile) {
+        const formData = new FormData();
+        formData.append('file', uploadedFile);
+        formData.append('site', selectedSite);
+        formData.append('sector', selectedSector);
+        formData.append('plantationDate', selectedPlantationDate);
+        formData.append('selectedDate', selectedDate.toISOString().split('T')[0]);
+        
+        response = await fetch(`${API_BASE_URL}/predict`, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // GET request for filter-based predictions
+        response = await fetch(`${API_BASE_URL}/predict?${params.toString()}`, {
+          method: 'GET',
+        });
+      }
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          // No data for this selection
+          setNoData(true);
+          setPredictions(null);
+          setFactors(null);
+          setTotal(null);
+          setAverage(null);
+          return;
+        }
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data: BackendPredictionResponse = await response.json();
+      
+      // Check if we received empty data
+      if (!data || Object.keys(data).length === 0) {
+        setNoData(true);
+        setPredictions(null);
+        setFactors(null);
+        setTotal(null);
+        setAverage(null);
+        return;
+      }
+      
+      // Convert backend response to app format
+      const convertedPredictions = convertBackendPredictions(data);
+      const stats = calculateStats(convertedPredictions);
+      
+      setPredictions(convertedPredictions);
+      setTotal(stats.total);
+      setAverage(stats.average);
+      setNoData(false);
+      
+    } catch (err) {
+      console.error('Prediction API error:', err);
+      // On error, show no data message instead of error
+      setNoData(true);
+      setPredictions(null);
+      setFactors(null);
+      setTotal(null);
+      setAverage(null);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [selectedSite, selectedSector, selectedPlantationDate, selectedDate, uploadedFile]);
+
+  // Fetch predictions on mount and when filters change
+  useEffect(() => {
+    fetchPredictions();
+  }, [fetchPredictions]);
 
   // Update sector when site changes
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
-    setSelectedSector(value === 'adm' ? 'A1' : '1.1');
-    // Clear API data and errors when filters change
-    setApiData(null);
-    setError(null);
+    // Reset to "All Sectors" when site changes
+    setSelectedSector("all");
   };
 
   const handleFileUpload = (file: File | null) => {
     setUploadedFile(file);
-    // Clear previous API data and errors when new file is uploaded
-    if (file) {
-      setApiData(null);
-      setError(null);
-    }
   };
 
   const handleProcessData = async () => {
     if (!uploadedFile) return;
-    
-    setIsProcessing(true);
-    setError(null);
-    
-    try {
-      // Prepare form data for the Python ML API
-      const formData = new FormData();
-      formData.append('file', uploadedFile);
-      formData.append('site', selectedSite);
-      formData.append('sector', selectedSector);
-      formData.append('plantationDate', selectedPlantationDate);
-      formData.append('selectedDate', selectedDate.toISOString().split('T')[0]);
-      
-      // Call Python ML API
-      const response = await fetch(`${API_BASE_URL}/predict`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data: PredictionResponse = await response.json();
-      setApiData(data);
-      toast.success("Predictions processed successfully!");
-      
-    } catch (err) {
-      console.error('Prediction API error:', err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to connect to the API";
-      setError(`Failed to process predictions: ${errorMessage}. Make sure the Python backend is running on ${API_BASE_URL}`);
-      toast.error("Failed to process predictions. Is the API running?");
-    } finally {
-      setIsProcessing(false);
-    }
+    await fetchPredictions();
+    toast.success("Predictions processed successfully!");
   };
 
   return (
@@ -103,30 +159,16 @@ const Index = () => {
           <div className="p-6 space-y-6">
             {isProcessing ? (
               <LoadingState />
-            ) : error ? (
-              <div className="space-y-6">
-                <ErrorState message={error} onRetry={handleProcessData} />
-                <section className="space-y-6">
-                <PredictedHarvestChart 
-                    site={selectedSite} 
-                    selectedDate={selectedDate}
-                    sector={selectedSector}
-                    plantationDate={selectedPlantationDate}
-                    apiPredictions={apiData?.predictions}
-                  />
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <TopInfluencingFactors apiFactors={apiData?.factors} />
-                    <HarvestStats 
-                      site={selectedSite}
-                      selectedDate={selectedDate}
-                      sector={selectedSector}
-                      plantationDate={selectedPlantationDate}
-                      apiPredictions={apiData?.predictions}
-                      apiTotal={apiData?.total}
-                      apiAverage={apiData?.average}
-                    />
-                  </div>
-                </section>
+            ) : noData ? (
+              <div className="flex items-center justify-center h-[400px]">
+                <div className="text-center space-y-2">
+                  <p className="text-lg text-muted-foreground">
+                    No prediction available for this selection.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Try selecting different filters.
+                  </p>
+                </div>
               </div>
             ) : (
               <section className="space-y-6">
@@ -135,18 +177,18 @@ const Index = () => {
                   selectedDate={selectedDate}
                   sector={selectedSector}
                   plantationDate={selectedPlantationDate}
-                  apiPredictions={apiData?.predictions}
+                  apiPredictions={predictions}
                 />
                 <div className="grid gap-6 lg:grid-cols-2">
-                  <TopInfluencingFactors apiFactors={apiData?.factors} />
+                  <TopInfluencingFactors apiFactors={factors} />
                   <HarvestStats 
                     site={selectedSite}
                     selectedDate={selectedDate}
                     sector={selectedSector}
                     plantationDate={selectedPlantationDate}
-                    apiPredictions={apiData?.predictions}
-                    apiTotal={apiData?.total}
-                    apiAverage={apiData?.average}
+                    apiPredictions={predictions}
+                    apiTotal={total}
+                    apiAverage={average}
                   />
                 </div>
               </section>

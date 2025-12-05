@@ -69,6 +69,14 @@ const almSectors = [
   '31.1', '31.2', '31.3'
 ];
 
+// Get sector options based on selected site
+function getSectorOptions(site: string): string[] {
+  if (site === 'all') {
+    return [...admSectors, ...almSectors];
+  }
+  return site === 'adm' ? admSectors : almSectors;
+}
+
 export const FilterSidebar = ({ 
   selectedSite, 
   selectedSector,
@@ -80,7 +88,7 @@ export const FilterSidebar = ({
   onProcessData,
   isProcessing = false
 }: FilterSidebarProps) => {
-  const sectorOptions = selectedSite === 'adm' ? admSectors : almSectors;
+  const sectorOptions = getSectorOptions(selectedSite);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -188,7 +196,8 @@ export const FilterSidebar = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select site" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-50 bg-popover">
+                <SelectItem value="all">All Sites</SelectItem>
                 <SelectItem value="adm">ADM</SelectItem>
                 <SelectItem value="alm">ALM</SelectItem>
               </SelectContent>
@@ -204,7 +213,8 @@ export const FilterSidebar = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select sector" />
               </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
+              <SelectContent className="z-50 bg-popover max-h-[300px]">
+                <SelectItem value="all">All Sectors</SelectItem>
                 {sectorOptions.map((sector) => (
                   <SelectItem key={sector} value={sector}>{sector}</SelectItem>
                 ))}
@@ -221,7 +231,7 @@ export const FilterSidebar = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select plantation date" />
               </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
+              <SelectContent className="z-50 bg-popover max-h-[300px]">
                 {plantationDates.map((date) => (
                   <SelectItem key={date} value={date}>{date}</SelectItem>
                 ))}

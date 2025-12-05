@@ -9,7 +9,7 @@ interface PredictedHarvestChartProps {
   sector?: string;
   plantationDate?: string;
   // API data - when provided, uses this instead of mock calculations
-  apiPredictions?: DailyPrediction[];
+  apiPredictions?: DailyPrediction[] | null;
 }
 
 export const PredictedHarvestChart = ({ 
@@ -26,9 +26,9 @@ export const PredictedHarvestChart = ({
         predicted: pred.value,
       }))
     : calculatePredictions({ 
-        site, 
+        site: site === 'all' ? 'adm' : site, 
         selectedDate, 
-        sector: sector || 'A1', 
+        sector: sector === 'all' ? 'A1' : (sector || 'A1'), 
         plantationDate
       }).predictions.map(pred => ({
         date: pred.date,
