@@ -59,12 +59,10 @@ const Index = () => {
   // Load last prediction on mount
   const lastPrediction = useMemo(() => loadLastPrediction(), []);
   
-  // Default to last prediction filters or "All Sites" and "All Sectors"
-  const [selectedSite, setSelectedSite] = useState(lastPrediction?.filters.site || "all");
-  const [selectedSector, setSelectedSector] = useState(lastPrediction?.filters.sector || "all");
-  const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>(
-    lastPrediction?.filters.plantationDate || "2021-07-08"
-  );
+  // Always default to "All Sites" and "All Sectors"
+  const [selectedSite, setSelectedSite] = useState("all");
+  const [selectedSector, setSelectedSector] = useState("all");
+  const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
