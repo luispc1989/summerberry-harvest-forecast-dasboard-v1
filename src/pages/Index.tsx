@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
@@ -22,9 +22,12 @@ const Index = () => {
   const [selectedSite, setSelectedSite] = useState("all");
   const [selectedSector, setSelectedSector] = useState("all");
   const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
-  const selectedDate = new Date(); // Today's date, no longer user-selectable
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Memoize today's date to avoid re-renders
+  const selectedDate = useMemo(() => new Date(), []);
+  const selectedDateString = useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
   
   // API response state - stores real predictions from Python backend
   // When null, components will use mock data as fallback
@@ -46,7 +49,7 @@ const Index = () => {
         site: selectedSite,
         sector: selectedSector,
         plantationDate: selectedPlantationDate,
-        selectedDate: selectedDate.toISOString().split('T')[0]
+        selectedDate: selectedDateString
       });
       
       // If there's an uploaded file, use POST with FormData
@@ -58,7 +61,7 @@ const Index = () => {
         formData.append('site', selectedSite);
         formData.append('sector', selectedSector);
         formData.append('plantationDate', selectedPlantationDate);
-        formData.append('selectedDate', selectedDate.toISOString().split('T')[0]);
+        formData.append('selectedDate', selectedDateString);
         
         response = await fetch(`${API_BASE_URL}/predict`, {
           method: 'POST',
@@ -117,7 +120,7 @@ const Index = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [selectedSite, selectedSector, selectedPlantationDate, selectedDate, uploadedFile]);
+  }, [selectedSite, selectedSector, selectedPlantationDate, selectedDateString, uploadedFile]);
 
   // Fetch predictions on mount and when filters change
   useEffect(() => {
