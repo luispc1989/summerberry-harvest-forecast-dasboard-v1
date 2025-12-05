@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
@@ -36,52 +36,38 @@ const Index = () => {
   const [total, setTotal] = useState<number | null>(null);
   const [average, setAverage] = useState<number | null>(null);
   const [noData, setNoData] = useState(false);
-  const [usingMockData, setUsingMockData] = useState(true);
 
-  // Fetch predictions from backend
-  const fetchPredictions = useCallback(async () => {
+  // Process predictions - only called when user clicks "Process Predictions" button
+  const handleProcessData = async () => {
+    if (!uploadedFile) {
+      toast.error("Please upload a file first");
+      return;
+    }
+    
     setIsProcessing(true);
     setNoData(false);
     
     try {
-      // Build query params
-      const params = new URLSearchParams({
-        site: selectedSite,
-        sector: selectedSector,
-        plantationDate: selectedPlantationDate,
-        selectedDate: selectedDateString
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      formData.append('site', selectedSite);
+      formData.append('sector', selectedSector);
+      formData.append('plantationDate', selectedPlantationDate);
+      formData.append('selectedDate', selectedDateString);
+      
+      const response = await fetch(`${API_BASE_URL}/predict`, {
+        method: 'POST',
+        body: formData,
       });
-      
-      // If there's an uploaded file, use POST with FormData
-      let response: Response;
-      
-      if (uploadedFile) {
-        const formData = new FormData();
-        formData.append('file', uploadedFile);
-        formData.append('site', selectedSite);
-        formData.append('sector', selectedSector);
-        formData.append('plantationDate', selectedPlantationDate);
-        formData.append('selectedDate', selectedDateString);
-        
-        response = await fetch(`${API_BASE_URL}/predict`, {
-          method: 'POST',
-          body: formData,
-        });
-      } else {
-        // GET request for filter-based predictions
-        response = await fetch(`${API_BASE_URL}/predict?${params.toString()}`, {
-          method: 'GET',
-        });
-      }
       
       if (!response.ok) {
         if (response.status === 404) {
-          // No data for this selection - use mock data
-          setUsingMockData(true);
+          setNoData(true);
           setPredictions(null);
           setFactors(null);
           setTotal(null);
           setAverage(null);
+          toast.info("No prediction available for this selection");
           return;
         }
         throw new Error(`API error: ${response.status}`);
@@ -91,11 +77,12 @@ const Index = () => {
       
       // Check if we received empty data
       if (!data || Object.keys(data).length === 0) {
-        setUsingMockData(true);
+        setNoData(true);
         setPredictions(null);
         setFactors(null);
         setTotal(null);
         setAverage(null);
+        toast.info("No prediction available for this selection");
         return;
       }
       
@@ -107,25 +94,16 @@ const Index = () => {
       setTotal(stats.total);
       setAverage(stats.average);
       setNoData(false);
-      setUsingMockData(false);
+      toast.success("Predictions processed successfully!");
       
     } catch (err) {
-      // Backend not available - use mock data (this is expected during development)
-      console.log('Backend not available, using mock data');
-      setUsingMockData(true);
-      setPredictions(null);
-      setFactors(null);
-      setTotal(null);
-      setAverage(null);
+      // Backend not available - show error message
+      console.log('Backend not available:', err);
+      toast.error("Failed to process predictions. Make sure the backend API is running.");
     } finally {
       setIsProcessing(false);
     }
-  }, [selectedSite, selectedSector, selectedPlantationDate, selectedDateString, uploadedFile]);
-
-  // Fetch predictions on mount and when filters change
-  useEffect(() => {
-    fetchPredictions();
-  }, [fetchPredictions]);
+  };
 
   // Update sector when site changes
   const handleSiteChange = (value: string) => {
@@ -136,14 +114,7 @@ const Index = () => {
 
   const handleFileUpload = (file: File | null) => {
     setUploadedFile(file);
-  };
-
-  const handleProcessData = async () => {
-    if (!uploadedFile) return;
-    await fetchPredictions();
-    if (!usingMockData) {
-      toast.success("Predictions processed successfully!");
-    }
+    // Don't trigger predictions automatically - just store the file
   };
 
   return (
