@@ -71,10 +71,9 @@ const almSectors = [
 
 // Get sector options based on selected site
 function getSectorOptions(site: string): string[] {
-  if (site === 'all') {
-    return [...admSectors, ...almSectors];
-  }
-  return site === 'adm' ? admSectors : almSectors;
+  if (site === 'adm') return admSectors;
+  if (site === 'alm') return almSectors;
+  return []; // "all" sites - only "All Sectors" is available
 }
 
 export const FilterSidebar = ({ 
@@ -89,6 +88,8 @@ export const FilterSidebar = ({
   isProcessing = false
 }: FilterSidebarProps) => {
   const sectorOptions = getSectorOptions(selectedSite);
+  const isAllSites = selectedSite === 'all';
+  
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -209,8 +210,12 @@ export const FilterSidebar = ({
               <Grid3x3 className="h-4 w-4 text-primary" />
               Sector
             </Label>
-            <Select value={selectedSector} onValueChange={onSectorChange}>
-              <SelectTrigger>
+            <Select 
+              value={selectedSector} 
+              onValueChange={onSectorChange}
+              disabled={isAllSites}
+            >
+              <SelectTrigger className={isAllSites ? "opacity-70" : ""}>
                 <SelectValue placeholder="Select sector" />
               </SelectTrigger>
               <SelectContent className="z-50 bg-popover max-h-[300px]">
@@ -220,6 +225,11 @@ export const FilterSidebar = ({
                 ))}
               </SelectContent>
             </Select>
+            {isAllSites && (
+              <p className="text-xs text-muted-foreground">
+                All sectors included when "All Sites" is selected
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
