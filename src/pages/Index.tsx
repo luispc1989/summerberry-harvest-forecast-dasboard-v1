@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
@@ -6,6 +6,7 @@ import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
 import { HarvestStats } from "@/components/HarvestStats";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
+import { generateReport } from "@/utils/reportGenerator";
 import { 
   DailyPrediction, 
   BackendPredictionResponse, 
@@ -176,6 +177,30 @@ const Index = () => {
     // Don't trigger predictions automatically - just store the file
   };
 
+  // Generate PDF report
+  const handleGenerateReport = () => {
+    if (!predictions || predictions.length === 0) {
+      toast.error("No predictions available to generate report");
+      return;
+    }
+
+    const reportData = {
+      predictions: predictions.map(p => ({
+        day: p.day,
+        date: p.date,
+        value: p.value
+      })),
+      total: total ?? 0,
+      average: average ?? 0,
+      site: selectedSite,
+      sector: selectedSector,
+      plantationDate: selectedPlantationDate
+    };
+
+    generateReport(reportData);
+    toast.success("PDF report generated successfully!");
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <DashboardHeader />
@@ -190,7 +215,9 @@ const Index = () => {
           onPlantationDateChange={setSelectedPlantationDate}
           onFileUpload={handleFileUpload}
           onProcessData={handleProcessData}
+          onGenerateReport={handleGenerateReport}
           isProcessing={isProcessing}
+          hasPredictions={predictions !== null && predictions.length > 0}
         />
         
         <main className="flex-1 overflow-y-auto bg-background">
