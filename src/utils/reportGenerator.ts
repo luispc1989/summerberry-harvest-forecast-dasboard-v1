@@ -26,6 +26,7 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const FOOTER_Y = 280;
 
 // Colors
+const PRIMARY_BLUE: [number, number, number] = [3, 30, 64]; // #031e40
 const PRIMARY_GREEN: [number, number, number] = [34, 139, 34];
 const DARK_GRAY: [number, number, number] = [60, 60, 60];
 const LIGHT_GRAY: [number, number, number] = [120, 120, 120];
@@ -78,7 +79,7 @@ export async function generateReport(data: PDFData): Promise<void> {
     
     pdf.setFontSize(20);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(...PRIMARY_GREEN);
+    pdf.setTextColor(...PRIMARY_BLUE);
     pdf.text("The Summer Berry Company", MARGIN + logoWidth + 5, y + 10);
     
     pdf.setFontSize(12);
@@ -90,7 +91,7 @@ export async function generateReport(data: PDFData): Promise<void> {
   } catch {
     pdf.setFontSize(20);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(...PRIMARY_GREEN);
+    pdf.setTextColor(...PRIMARY_BLUE);
     pdf.text("The Summer Berry Company", MARGIN, y + 5);
     
     pdf.setFontSize(12);
