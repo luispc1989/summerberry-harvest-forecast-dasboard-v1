@@ -165,19 +165,48 @@ const Index = () => {
       
     } catch (err) {
       // Backend not available - use mock data for testing
+      // TODO: Remove this entire catch block once API integration is complete
+      // When API is live, this should throw an error to the user instead
       console.log('Backend not available, using mock data:', err);
+      
+      // Generate deterministic mock data based on filters
+      // This ensures different filter combinations produce different results
+      const generateFilterHash = (site: string, sector: string, plantDate: string): number => {
+        const str = `${site}-${sector}-${plantDate}`;
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          const char = str.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash;
+        }
+        return Math.abs(hash);
+      };
+      
+      const filterHash = generateFilterHash(selectedSite, selectedSector, selectedPlantationDate);
+      const seededRandom = (seed: number, index: number): number => {
+        const x = Math.sin(seed + index * 1000) * 10000;
+        return x - Math.floor(x);
+      };
       
       const mockPredictions: DailyPrediction[] = [];
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const baseDate = new Date();
       
+      // Base values vary by site
+      const siteMultiplier = selectedSite === 'adm' ? 1.2 : selectedSite === 'alm' ? 0.9 : 1.0;
+      // Sector adds variation
+      const sectorOffset = selectedSector === 'all' ? 0 : selectedSector.charCodeAt(0) * 2;
+      
       for (let i = 0; i < 7; i++) {
         const date = new Date(baseDate);
         date.setDate(date.getDate() + i);
+        const randomValue = seededRandom(filterHash, i);
+        const baseValue = 120 + sectorOffset;
+        const variation = randomValue * 180;
         mockPredictions.push({
           day: dayNames[date.getDay()],
           date: date.toISOString().split('T')[0],
-          value: Math.round(100 + Math.random() * 200)
+          value: Math.round((baseValue + variation) * siteMultiplier)
         });
       }
       
@@ -210,11 +239,25 @@ const Index = () => {
     }
   };
 
-  // Update sector when site changes
+  // Update sector when site changes - reset processed state to require new processing
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
     // Reset to "All Sectors" when site changes
     setSelectedSector("all");
+    // Reset processed state - user needs to reprocess with new filters
+    setHasProcessedInSession(false);
+  };
+
+  // Handle sector change - reset processed state
+  const handleSectorChange = (value: string) => {
+    setSelectedSector(value);
+    setHasProcessedInSession(false);
+  };
+
+  // Handle plantation date change - reset processed state
+  const handlePlantationDateChange = (value: string) => {
+    setSelectedPlantationDate(value);
+    setHasProcessedInSession(false);
   };
 
   const handleFileUpload = (file: File | null) => {
@@ -281,8 +324,8 @@ const Index = () => {
           selectedSector={selectedSector}
           selectedPlantationDate={selectedPlantationDate}
           onSiteChange={handleSiteChange}
-          onSectorChange={setSelectedSector}
-          onPlantationDateChange={setSelectedPlantationDate}
+          onSectorChange={handleSectorChange}
+          onPlantationDateChange={handlePlantationDateChange}
           onFileUpload={handleFileUpload}
           onProcessData={handleProcessData}
           onGenerateReport={handleGenerateReport}
