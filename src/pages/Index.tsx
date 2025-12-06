@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { z } from "zod";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
@@ -14,6 +15,13 @@ import {
   calculateStats,
   InfluencingFactor
 } from "@/types/api";
+
+// Zod schema for validating backend API response
+// Expected format: { "2024-01-15": 150, "2024-01-16": 175, ... }
+const BackendPredictionResponseSchema = z.record(
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  z.number().finite().nonnegative()
+);
 
 // API base URL - configure this for your local Python backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -126,7 +134,16 @@ const Index = () => {
         throw new Error(`API error: ${response.status}`);
       }
       
-      const data: BackendPredictionResponse = await response.json();
+      const rawData = await response.json();
+      
+      // Validate response schema to prevent malformed data issues
+      const parseResult = BackendPredictionResponseSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        console.error("Invalid API response format:", parseResult.error);
+        throw new Error("Invalid response format from prediction API");
+      }
+      
+      const data: BackendPredictionResponse = parseResult.data;
       
       // Check if we received empty data
       if (!data || Object.keys(data).length === 0) {
