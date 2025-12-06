@@ -6,7 +6,6 @@ interface HarvestStatsProps {
   site: string;
   selectedDate: Date;
   sector: string;
-  plantationDate?: string;
   // API data - when provided, uses this instead of mock calculations
   apiPredictions?: DailyPrediction[] | null;
   apiTotal?: number | null;
@@ -17,7 +16,6 @@ export const HarvestStats = ({
   site, 
   selectedDate, 
   sector, 
-  plantationDate,
   apiPredictions,
   apiTotal,
   apiAverage
@@ -26,8 +24,7 @@ export const HarvestStats = ({
   const mockStats = calculatePredictions({ 
     site, 
     selectedDate, 
-    sector, 
-    plantationDate 
+    sector
   });
   
   const predictions = apiPredictions || mockStats.predictions;

@@ -7,7 +7,6 @@ interface PredictedHarvestChartProps {
   site: string;
   selectedDate: Date;
   sector?: string;
-  plantationDate?: string;
   // API data - when provided, uses this instead of mock calculations
   apiPredictions?: DailyPrediction[] | null;
 }
@@ -16,7 +15,6 @@ export const PredictedHarvestChart = ({
   site, 
   selectedDate, 
   sector, 
-  plantationDate,
   apiPredictions 
 }: PredictedHarvestChartProps) => {
   // Use API data if available, otherwise fall back to mock calculations
@@ -28,8 +26,7 @@ export const PredictedHarvestChart = ({
     : calculatePredictions({ 
         site, 
         selectedDate, 
-        sector: sector || 'all', 
-        plantationDate
+        sector: sector || 'all'
       }).predictions.map(pred => ({
         date: pred.date,
         predicted: pred.value,
