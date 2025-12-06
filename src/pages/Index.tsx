@@ -262,7 +262,8 @@ const Index = () => {
 
   const handleFileUpload = (file: File | null) => {
     setUploadedFile(file);
-    // Don't trigger predictions automatically - just store the file
+    // Reset processed state when new file is uploaded - user needs to reprocess
+    setHasProcessedInSession(false);
   };
 
   // Default factors for PDF when API doesn't provide them
