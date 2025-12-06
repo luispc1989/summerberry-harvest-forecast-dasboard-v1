@@ -4,10 +4,9 @@ interface PredictionParams {
   site: string;
   selectedDate: Date;
   sector: string;
-  plantationDate?: string;
 }
 
-export const calculatePredictions = ({ site, selectedDate, sector, plantationDate }: PredictionParams) => {
+export const calculatePredictions = ({ site, selectedDate, sector }: PredictionParams) => {
   const basePredicted = 215;
   
   // Apply multipliers based on filters
@@ -31,24 +30,6 @@ export const calculatePredictions = ({ site, selectedDate, sector, plantationDat
     // Variation range: 0.75 - 1.25 (50% range for noticeable differences)
     const sectorVariation = 0.75 + ((sectorHash % 50) / 100);
     predictedMultiplier *= sectorVariation;
-  }
-  
-  // Plantation date variation - each date produces different values
-  if (plantationDate) {
-    const dateParts = plantationDate.split('-');
-    const year = parseInt(dateParts[0]);
-    const month = parseInt(dateParts[1]);
-    const day = parseInt(dateParts[2]);
-    
-    // Create a unique hash from plantation date
-    const plantationHash = (year * 10000 + month * 100 + day);
-    const plantationVariation = 0.85 + ((plantationHash % 30) / 100); // Range 0.85 - 1.15
-    predictedMultiplier *= plantationVariation;
-    
-    // Additional variation based on planting age (older plantations may have different yields)
-    const plantingYear = year;
-    const ageMultiplier = plantingYear <= 2020 ? 1.08 : plantingYear <= 2021 ? 1.0 : 0.95;
-    predictedMultiplier *= ageMultiplier;
   }
   
   // Generate 7 daily predictions

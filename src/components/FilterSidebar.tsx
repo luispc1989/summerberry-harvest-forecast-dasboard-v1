@@ -1,4 +1,4 @@
-import { Filter, MapPin, Grid3x3, CalendarDays, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2, FileDown } from "lucide-react";
+import { Filter, MapPin, Grid3x3, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2, FileDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -10,10 +10,8 @@ import { cn } from "@/lib/utils";
 interface FilterSidebarProps {
   selectedSite: string;
   selectedSector: string;
-  selectedPlantationDate: string;
   onSiteChange: (value: string) => void;
   onSectorChange: (value: string) => void;
-  onPlantationDateChange: (date: string) => void;
   onFileUpload?: (file: File | null) => void;
   onProcessData?: () => void;
   onGenerateReport?: () => void;
@@ -81,10 +79,8 @@ function getSectorOptions(site: string): string[] {
 export const FilterSidebar = ({ 
   selectedSite, 
   selectedSector,
-  selectedPlantationDate,
   onSiteChange, 
   onSectorChange,
-  onPlantationDateChange,
   onFileUpload,
   onProcessData,
   onGenerateReport,
@@ -236,22 +232,6 @@ export const FilterSidebar = ({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm font-medium">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              Plantation Date
-            </Label>
-            <Select value={selectedPlantationDate} onValueChange={onPlantationDateChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select plantation date" />
-              </SelectTrigger>
-              <SelectContent className="z-50 bg-popover max-h-[300px]">
-                {plantationDates.map((date) => (
-                  <SelectItem key={date} value={date}>{date}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </Card>
 
         <Card className="p-4 space-y-3">

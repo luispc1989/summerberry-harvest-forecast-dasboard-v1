@@ -3,7 +3,7 @@ import { z } from "zod";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
-import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
+
 import { HarvestStats } from "@/components/HarvestStats";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
@@ -71,7 +71,7 @@ const Index = () => {
   // Always default to "All Sites" and "All Sectors"
   const [selectedSite, setSelectedSite] = useState("all");
   const [selectedSector, setSelectedSector] = useState("all");
-  const [selectedPlantationDate, setSelectedPlantationDate] = useState<string>("2021-07-08");
+  
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -117,7 +117,7 @@ const Index = () => {
       formData.append('file', uploadedFile);
       formData.append('site', selectedSite);
       formData.append('sector', selectedSector);
-      formData.append('plantationDate', selectedPlantationDate);
+      
       formData.append('selectedDate', selectedDateString);
       
       const response = await fetch(`${API_BASE_URL}/predict`, {
@@ -173,7 +173,7 @@ const Index = () => {
         filters: {
           site: selectedSite,
           sector: selectedSector,
-          plantationDate: selectedPlantationDate,
+          plantationDate: "",
         },
         timestamp: new Date().toISOString(),
       });
@@ -188,8 +188,8 @@ const Index = () => {
       
       // Generate deterministic mock data based on filters
       // This ensures different filter combinations produce different results
-      const generateFilterHash = (site: string, sector: string, plantDate: string): number => {
-        const str = `${site}-${sector}-${plantDate}`;
+      const generateFilterHash = (site: string, sector: string): number => {
+        const str = `${site}-${sector}`;
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
           const char = str.charCodeAt(i);
@@ -199,7 +199,7 @@ const Index = () => {
         return Math.abs(hash);
       };
       
-      const filterHash = generateFilterHash(selectedSite, selectedSector, selectedPlantationDate);
+      const filterHash = generateFilterHash(selectedSite, selectedSector);
       const seededRandom = (seed: number, index: number): number => {
         const x = Math.sin(seed + index * 1000) * 10000;
         return x - Math.floor(x);
@@ -245,7 +245,7 @@ const Index = () => {
         filters: {
           site: selectedSite,
           sector: selectedSector,
-          plantationDate: selectedPlantationDate,
+          plantationDate: "",
         },
         timestamp: new Date().toISOString(),
       });
@@ -268,12 +268,6 @@ const Index = () => {
   // Handle sector change - reset processed state
   const handleSectorChange = (value: string) => {
     setSelectedSector(value);
-    setHasProcessedInSession(false);
-  };
-
-  // Handle plantation date change - reset processed state
-  const handlePlantationDateChange = (value: string) => {
-    setSelectedPlantationDate(value);
     setHasProcessedInSession(false);
   };
 
@@ -312,7 +306,7 @@ const Index = () => {
       average: average ?? 0,
       site: selectedSite,
       sector: selectedSector,
-      plantationDate: selectedPlantationDate,
+      plantationDate: "",
       factors: factors?.map(f => ({
         name: f.name,
         importance: f.importance,
@@ -340,10 +334,8 @@ const Index = () => {
         <FilterSidebar
           selectedSite={selectedSite}
           selectedSector={selectedSector}
-          selectedPlantationDate={selectedPlantationDate}
           onSiteChange={handleSiteChange}
           onSectorChange={handleSectorChange}
-          onPlantationDateChange={handlePlantationDateChange}
           onFileUpload={handleFileUpload}
           onProcessData={handleProcessData}
           onGenerateReport={handleGenerateReport}
@@ -368,20 +360,17 @@ const Index = () => {
               </div>
             ) : (
               <section className="space-y-6">
-                <PredictedHarvestChart 
-                  site={selectedSite} 
-                  selectedDate={selectedDate}
-                  sector={selectedSector}
-                  plantationDate={selectedPlantationDate}
-                  apiPredictions={predictions}
-                />
                 <div className="grid gap-6 lg:grid-cols-2">
-                  <TopInfluencingFactors apiFactors={factors} />
+                  <PredictedHarvestChart 
+                    site={selectedSite} 
+                    selectedDate={selectedDate}
+                    sector={selectedSector}
+                    apiPredictions={predictions}
+                  />
                   <HarvestStats 
                     site={selectedSite}
                     selectedDate={selectedDate}
                     sector={selectedSector}
-                    plantationDate={selectedPlantationDate}
                     apiPredictions={predictions}
                     apiTotal={total}
                     apiAverage={average}
