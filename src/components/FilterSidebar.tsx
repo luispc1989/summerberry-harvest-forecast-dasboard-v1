@@ -6,7 +6,13 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import * as XLSX from 'xlsx';
 
+// Required sheet names for the XLSX template - update these when template is provided
+const REQUIRED_SHEETS: string[] = [
+  // TODO: Add required sheet names here when template is provided
+  // Example: "Data", "Metadata", "Config"
+];
 interface FilterSidebarProps {
   selectedSite: string;
   selectedSector: string;
@@ -104,30 +110,61 @@ export const FilterSidebar = ({
     }
   }, [uploadSuccess]);
 
-  const processFile = (file: File) => {
+  const validateSheets = async (file: File): Promise<{ valid: boolean; missing: string[] }> => {
+    // If no required sheets defined yet, skip validation
+    if (REQUIRED_SHEETS.length === 0) {
+      return { valid: true, missing: [] };
+    }
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheetNames = workbook.SheetNames;
+      
+      const missingSheets = REQUIRED_SHEETS.filter(
+        required => !sheetNames.some(name => name.toLowerCase() === required.toLowerCase())
+      );
+      
+      return { valid: missingSheets.length === 0, missing: missingSheets };
+    } catch (error) {
+      console.error('Error reading XLSX file:', error);
+      return { valid: false, missing: ['Unable to read file'] };
+    }
+  };
+
+  const processFile = async (file: File) => {
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast.error("File too large. Maximum size is 10MB.");
       return;
     }
 
-    // Check file type
-    const validTypes = ['.csv', '.xlsx', '.xls'];
+    // Check file type - only XLSX allowed
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (!validTypes.includes(extension)) {
-      toast.error("Invalid file type. Please upload CSV or XLSX files.");
+    if (extension !== '.xlsx') {
+      toast.error("Invalid file type. Please upload XLSX files only.");
       return;
     }
 
-    // Simulate upload with animation
     setIsUploading(true);
+
+    // Validate sheet names
+    const { valid, missing } = await validateSheets(file);
+    
+    if (!valid) {
+      setIsUploading(false);
+      toast.error(`Missing required sheets: ${missing.join(', ')}`);
+      return;
+    }
+
+    // Complete upload
     setTimeout(() => {
       setIsUploading(false);
       setUploadSuccess(true);
       setUploadedFileName(file.name);
       onFileUpload?.(file);
       toast.success(`File "${file.name}" uploaded successfully`);
-    }, 800);
+    }, 300);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -240,7 +277,7 @@ export const FilterSidebar = ({
             <h3 className="text-sm font-semibold text-sidebar-foreground">Weekly Data Upload</h3>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Upload CSV or XLSX file</Label>
+            <Label className="text-xs text-muted-foreground">Upload XLSX file</Label>
             {uploadedFileName ? (
               <div className="space-y-3">
                 <div className={cn(
@@ -338,7 +375,7 @@ export const FilterSidebar = ({
                 
                 <input
                   type="file"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".xlsx"
                   className="hidden"
                   id="file-upload"
                   onChange={handleFileChange}
@@ -386,7 +423,7 @@ export const FilterSidebar = ({
                     isUploading && "bg-primary/20 text-primary",
                     !isDragging && !isUploading && "bg-muted text-muted-foreground"
                   )}>
-                    CSV, XLSX • Max 10MB
+                    XLSX only • Max 10MB
                   </span>
                 </label>
               </div>
