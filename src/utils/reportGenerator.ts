@@ -2,20 +2,12 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import logoImage from "@/assets/summerberry-logo.png";
 
-export interface InfluencingFactorData {
-  name: string;
-  importance: number;
-  correlation: "positive" | "negative";
-}
-
 export interface PDFData {
   predictions: Array<{ day: string; date: string; value: number }>;
   total: number;
   average: number;
   site: string;
   sector: string;
-  plantationDate: string;
-  factors?: InfluencingFactorData[];
   chartElement?: HTMLElement | null;
 }
 
@@ -30,8 +22,6 @@ const PRIMARY_BLUE: [number, number, number] = [3, 30, 64]; // #031e40
 const PRIMARY_GREEN: [number, number, number] = [34, 139, 34];
 const DARK_GRAY: [number, number, number] = [60, 60, 60];
 const LIGHT_GRAY: [number, number, number] = [120, 120, 120];
-const POSITIVE_COLOR: [number, number, number] = [76, 175, 80];
-const NEGATIVE_COLOR: [number, number, number] = [244, 67, 54];
 
 function addFooter(pdf: jsPDF, pageNumber: number, totalPages: number) {
   pdf.setDrawColor(200, 200, 200);
@@ -55,7 +45,6 @@ function addFooter(pdf: jsPDF, pageNumber: number, totalPages: number) {
 
 export async function generateReport(data: PDFData): Promise<void> {
   const pdf = new jsPDF("portrait", "mm", "a4");
-  const totalPages = 2;
   let y = 15;
 
   // ===== PAGE 1: Header, Chart, and 7-Day Predictions Table =====
@@ -116,7 +105,7 @@ export async function generateReport(data: PDFData): Promise<void> {
 
   const siteName = data.site === "all" ? "All Sites" : data.site.toUpperCase();
   const sectorName = data.sector === "all" ? "All Sectors" : data.sector;
-  pdf.text(`Site: ${siteName}  •  Sector: ${sectorName}  •  Plantation Date: ${data.plantationDate}`, MARGIN, y);
+  pdf.text(`Site: ${siteName}  •  Sector: ${sectorName}`, MARGIN, y);
   y += 8;
 
   // Divider line
@@ -195,20 +184,14 @@ export async function generateReport(data: PDFData): Promise<void> {
   pdf.setFontSize(10);
   pdf.text(`Total: ${data.total.toLocaleString()} kg`, MARGIN + 5, y + 6.5);
   pdf.text(`Daily Average: ${data.average.toLocaleString()} kg`, MARGIN + 100, y + 6.5);
+  y += 15;
 
-  // Add footer to first page
-  addFooter(pdf, 1, totalPages);
-
-  // ===== PAGE 2: Summary Statistics and Top Influencing Factors =====
-  pdf.addPage();
-  y = 20;
-
-  // Summary Statistics Table
-  pdf.setFontSize(14);
+  // Summary Statistics Section
+  pdf.setFontSize(12);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(...PRIMARY_BLUE);
   pdf.text("Summary Statistics", MARGIN, y);
-  y += 10;
+  y += 8;
 
   const minPrediction = Math.min(...data.predictions.map(p => p.value));
   const maxPrediction = Math.max(...data.predictions.map(p => p.value));
@@ -227,91 +210,31 @@ export async function generateReport(data: PDFData): Promise<void> {
 
   // Table header
   pdf.setFillColor(240, 240, 240);
-  pdf.rect(MARGIN, y, CONTENT_WIDTH, 10, "F");
-  pdf.setFontSize(10);
+  pdf.rect(MARGIN, y, CONTENT_WIDTH, 8, "F");
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(...DARK_GRAY);
-  pdf.text(statsData[0][0], MARGIN + 5, y + 6.5);
-  pdf.text(statsData[0][1], MARGIN + 70, y + 6.5);
-  y += 11;
+  pdf.text(statsData[0][0], MARGIN + 5, y + 5.5);
+  pdf.text(statsData[0][1], MARGIN + 70, y + 5.5);
+  y += 9;
 
   // Table rows
   pdf.setFont("helvetica", "normal");
   for (let i = 1; i < statsData.length; i++) {
     if (i % 2 === 0) {
       pdf.setFillColor(250, 250, 250);
-      pdf.rect(MARGIN, y - 1, CONTENT_WIDTH, 8, "F");
+      pdf.rect(MARGIN, y - 1, CONTENT_WIDTH, 6, "F");
     }
     pdf.setTextColor(...DARK_GRAY);
-    pdf.text(statsData[i][0], MARGIN + 5, y + 4);
+    pdf.text(statsData[i][0], MARGIN + 5, y + 3);
     pdf.setFont("helvetica", "bold");
-    pdf.text(statsData[i][1], MARGIN + 70, y + 4);
+    pdf.text(statsData[i][1], MARGIN + 70, y + 3);
     pdf.setFont("helvetica", "normal");
-    y += 8;
+    y += 6;
   }
 
-  y += 15;
-
-  // Top Influencing Factors Table
-  if (data.factors && data.factors.length > 0) {
-    pdf.setFontSize(14);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(...PRIMARY_BLUE);
-    pdf.text("Top Influencing Factors", MARGIN, y);
-    y += 10;
-
-    // Table header
-    pdf.setFillColor(240, 240, 240);
-    pdf.rect(MARGIN, y, CONTENT_WIDTH, 10, "F");
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(...DARK_GRAY);
-    pdf.text("Rank", MARGIN + 5, y + 6.5);
-    pdf.text("Factor", MARGIN + 25, y + 6.5);
-    pdf.text("Importance", MARGIN + 100, y + 6.5);
-    pdf.text("Correlation", MARGIN + 140, y + 6.5);
-    y += 11;
-
-    // Factor rows
-    data.factors.slice(0, 5).forEach((factor, index) => {
-      if (index % 2 === 0) {
-        pdf.setFillColor(250, 250, 250);
-        pdf.rect(MARGIN, y - 1, CONTENT_WIDTH, 10, "F");
-      }
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(...DARK_GRAY);
-      pdf.text(`${index + 1}`, MARGIN + 8, y + 5);
-      
-      pdf.setFont("helvetica", "normal");
-      pdf.text(factor.name, MARGIN + 25, y + 5);
-      
-      // Progress bar
-      const barX = MARGIN + 100;
-      const barWidth = 30;
-      const fillWidth = (factor.importance / 100) * barWidth;
-      const barColor = factor.correlation === "positive" ? POSITIVE_COLOR : NEGATIVE_COLOR;
-      
-      pdf.setFillColor(230, 230, 230);
-      pdf.roundedRect(barX, y, barWidth, 6, 1, 1, "F");
-      pdf.setFillColor(...barColor);
-      pdf.roundedRect(barX, y, fillWidth, 6, 1, 1, "F");
-      
-      pdf.setFontSize(8);
-      pdf.text(`${factor.importance}%`, barX + barWidth + 3, y + 4);
-      
-      // Correlation
-      pdf.setFontSize(9);
-      pdf.setTextColor(...barColor);
-      pdf.text(factor.correlation === "positive" ? "Positive ↑" : "Negative ↓", MARGIN + 140, y + 5);
-      pdf.setTextColor(...DARK_GRAY);
-      
-      y += 10;
-    });
-  }
-
-  // Add footer to second page
-  addFooter(pdf, 2, totalPages);
+  // Add footer
+  addFooter(pdf, 1, 1);
 
   // Generate PDF blob
   const pdfBlob = pdf.output("blob");
