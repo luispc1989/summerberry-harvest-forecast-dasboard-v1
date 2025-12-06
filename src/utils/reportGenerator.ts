@@ -130,7 +130,7 @@ export async function generateReport(data: PDFData): Promise<void> {
     try {
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(...DARK_GRAY);
+      pdf.setTextColor(...PRIMARY_BLUE);
       pdf.text("7-Day Harvest Prediction Chart", MARGIN, y);
       y += 5;
 
@@ -156,7 +156,7 @@ export async function generateReport(data: PDFData): Promise<void> {
   // 7-Day Predictions Table
   pdf.setFontSize(12);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(...DARK_GRAY);
+  pdf.setTextColor(...PRIMARY_BLUE);
   pdf.text("7-Day Harvest Predictions", MARGIN, y);
   y += 6;
 
@@ -206,7 +206,7 @@ export async function generateReport(data: PDFData): Promise<void> {
   // Summary Statistics Table
   pdf.setFontSize(14);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(...PRIMARY_GREEN);
+  pdf.setTextColor(...PRIMARY_BLUE);
   pdf.text("Summary Statistics", MARGIN, y);
   y += 10;
 
@@ -256,7 +256,7 @@ export async function generateReport(data: PDFData): Promise<void> {
   if (data.factors && data.factors.length > 0) {
     pdf.setFontSize(14);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(...PRIMARY_GREEN);
+    pdf.setTextColor(...PRIMARY_BLUE);
     pdf.text("Top Influencing Factors", MARGIN, y);
     y += 10;
 

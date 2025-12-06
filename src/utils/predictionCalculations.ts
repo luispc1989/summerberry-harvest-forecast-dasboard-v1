@@ -13,20 +13,24 @@ export const calculatePredictions = ({ site, selectedDate, sector, plantationDat
   // Apply multipliers based on filters
   let predictedMultiplier = 1;
   
-  // Site variation - "all" sites gets a combined average
+  // Site variation - each site has distinct multipliers
   if (site === 'all') {
-    predictedMultiplier *= 1.06; // Average between adm (1.0) and alm (1.12)
+    predictedMultiplier *= 1.15; // Combined average
+  } else if (site === 'adm') {
+    predictedMultiplier *= 0.92; // ADM produces less
   } else if (site === 'alm') {
-    predictedMultiplier *= 1.12;
+    predictedMultiplier *= 1.28; // ALM produces more
   }
   
-  // Sector variation - "all" sectors gets a combined average
+  // Sector variation - each sector produces noticeably different values
   if (sector === 'all') {
-    predictedMultiplier *= 1.05; // Higher yield when aggregating all sectors
+    predictedMultiplier *= 1.08; // Higher yield when aggregating all sectors
   } else {
-    const sectorHash = sector.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const sectorVariation = 1 + ((sectorHash % 20) - 10) / 100;
-    predictedMultiplier *= sectorVariation * 0.98;
+    // Create a more distinct hash for each sector
+    const sectorHash = sector.split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0);
+    // Variation range: 0.75 - 1.25 (50% range for noticeable differences)
+    const sectorVariation = 0.75 + ((sectorHash % 50) / 100);
+    predictedMultiplier *= sectorVariation;
   }
   
   // Plantation date variation - each date produces different values
