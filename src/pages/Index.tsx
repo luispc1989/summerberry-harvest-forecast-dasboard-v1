@@ -86,6 +86,9 @@ const Index = () => {
   );
   const [noData, setNoData] = useState(false);
   
+  // Track if predictions were processed in current session (not just loaded from localStorage)
+  const [hasProcessedInSession, setHasProcessedInSession] = useState(false);
+  
   // TODO: Remove mock data fallback once API integration is complete
   // When isMockData is true, we're using test data (backend unavailable)
   // PDF generation should only work with real data in production
@@ -142,6 +145,7 @@ const Index = () => {
       setAverage(stats.average);
       setNoData(false);
       setIsMockData(false); // Real data from API
+      setHasProcessedInSession(true); // Mark as processed in current session
       
       // Save to localStorage for persistence
       saveLastPrediction({
@@ -184,6 +188,7 @@ const Index = () => {
       setTotal(mockTotal);
       setAverage(mockAverage);
       setIsMockData(true); // Mark as mock data
+      setHasProcessedInSession(true); // Mark as processed in current session
       
       // Save mock data to localStorage
       saveLastPrediction({
@@ -282,7 +287,7 @@ const Index = () => {
           onProcessData={handleProcessData}
           onGenerateReport={handleGenerateReport}
           isProcessing={isProcessing}
-          hasPredictions={predictions !== null && predictions.length > 0}
+          hasPredictions={hasProcessedInSession && predictions !== null && predictions.length > 0}
         />
         
         <main className="flex-1 overflow-y-auto bg-background">
