@@ -157,9 +157,45 @@ const Index = () => {
       toast.success("Predictions processed successfully!");
       
     } catch (err) {
-      // Backend not available - show error message
-      console.log('Backend not available:', err);
-      toast.error("Failed to process predictions. Make sure the backend API is running.");
+      // Backend not available - use mock data for testing
+      console.log('Backend not available, using mock data:', err);
+      
+      const mockPredictions: DailyPrediction[] = [];
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const baseDate = new Date();
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(baseDate);
+        date.setDate(date.getDate() + i);
+        mockPredictions.push({
+          day: dayNames[date.getDay()],
+          date: date.toISOString().split('T')[0],
+          value: Math.round(100 + Math.random() * 200)
+        });
+      }
+      
+      const mockTotal = mockPredictions.reduce((sum, p) => sum + p.value, 0);
+      const mockAverage = Math.round(mockTotal / mockPredictions.length);
+      
+      setPredictions(mockPredictions);
+      setTotal(mockTotal);
+      setAverage(mockAverage);
+      
+      // Save mock data to localStorage
+      saveLastPrediction({
+        predictions: mockPredictions,
+        factors: null,
+        total: mockTotal,
+        average: mockAverage,
+        filters: {
+          site: selectedSite,
+          sector: selectedSector,
+          plantationDate: selectedPlantationDate,
+        },
+        timestamp: new Date().toISOString(),
+      });
+      
+      toast.warning("Backend unavailable - using mock data for demonstration");
     } finally {
       setIsProcessing(false);
     }
