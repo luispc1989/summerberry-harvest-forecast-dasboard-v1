@@ -86,8 +86,10 @@ const Index = () => {
   );
   const [noData, setNoData] = useState(false);
   
-  // Track if we're using real API data (has stored prediction)
-  const hasRealPrediction = lastPrediction !== null || predictions !== null;
+  // TODO: Remove mock data fallback once API integration is complete
+  // When isMockData is true, we're using test data (backend unavailable)
+  // PDF generation should only work with real data in production
+  const [isMockData, setIsMockData] = useState(false);
 
   // Process predictions - only called when user clicks "Process Predictions" button
   const handleProcessData = async () => {
@@ -134,11 +136,12 @@ const Index = () => {
       const convertedPredictions = convertBackendPredictions(data);
       const stats = calculateStats(convertedPredictions);
       
-      // Update state
+      // Update state with real API data
       setPredictions(convertedPredictions);
       setTotal(stats.total);
       setAverage(stats.average);
       setNoData(false);
+      setIsMockData(false); // Real data from API
       
       // Save to localStorage for persistence
       saveLastPrediction({
@@ -180,6 +183,7 @@ const Index = () => {
       setPredictions(mockPredictions);
       setTotal(mockTotal);
       setAverage(mockAverage);
+      setIsMockData(true); // Mark as mock data
       
       // Save mock data to localStorage
       saveLastPrediction({
