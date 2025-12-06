@@ -36,7 +36,7 @@ export const PredictedHarvestChart = ({
       }));
   
   return (
-    <Card className="col-span-2">
+    <Card className="col-span-2" data-chart="predicted-harvest">
       <CardHeader>
         <CardTitle>Predicted Harvest</CardTitle>
         <CardDescription>Forecast of harvest volumes for the next 7 days (kg)</CardDescription>

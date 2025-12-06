@@ -6,7 +6,7 @@ import { TopInfluencingFactors } from "@/components/TopInfluencingFactors";
 import { HarvestStats } from "@/components/HarvestStats";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
-import { generateReport } from "@/utils/reportGenerator";
+import { generateReport, InfluencingFactorData } from "@/utils/reportGenerator";
 import { 
   DailyPrediction, 
   BackendPredictionResponse, 
@@ -217,12 +217,24 @@ const Index = () => {
     // Don't trigger predictions automatically - just store the file
   };
 
+  // Default factors for PDF when API doesn't provide them
+  const defaultFactors: InfluencingFactorData[] = [
+    { name: "Temperature", importance: 78, correlation: "positive" },
+    { name: "Flower Abortion Rate", importance: 72, correlation: "negative" },
+    { name: "Irrigation Volume", importance: 55, correlation: "positive" },
+    { name: "Humidity", importance: 48, correlation: "positive" },
+    { name: "Solar Radiation", importance: 42, correlation: "positive" },
+  ];
+
   // Generate PDF report
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (!predictions || predictions.length === 0) {
       toast.error("No predictions available to generate report");
       return;
     }
+
+    // Find the chart element
+    const chartElement = document.querySelector('[data-chart="predicted-harvest"]') as HTMLElement | null;
 
     const reportData = {
       predictions: predictions.map(p => ({
@@ -234,11 +246,24 @@ const Index = () => {
       average: average ?? 0,
       site: selectedSite,
       sector: selectedSector,
-      plantationDate: selectedPlantationDate
+      plantationDate: selectedPlantationDate,
+      factors: factors?.map(f => ({
+        name: f.name,
+        importance: f.importance,
+        correlation: f.correlation
+      })) || defaultFactors,
+      chartElement
     };
 
-    generateReport(reportData);
-    toast.success("PDF report generated successfully!");
+    toast.loading("Generating PDF report...", { id: "pdf-generation" });
+    
+    try {
+      await generateReport(reportData);
+      toast.success("PDF report generated successfully!", { id: "pdf-generation" });
+    } catch (err) {
+      toast.error("Failed to generate PDF report", { id: "pdf-generation" });
+      console.error("PDF generation error:", err);
+    }
   };
 
   return (
