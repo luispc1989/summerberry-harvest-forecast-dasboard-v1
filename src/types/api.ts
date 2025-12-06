@@ -10,23 +10,14 @@ export interface PredictionResponse {
   predictions: DailyPrediction[];
   total: number;
   average: number;
-  stdDev: number;
 }
 
 // Backend returns predictions with statistics
-// Format: { predictions: {"2025-01-01": 150, ...}, total: 1050, average: 150, stdDev: 25.5 }
+// Format: { predictions: {"2025-01-01": 150, ...}, total: 1050, average: 150 }
 export interface BackendPredictionResponse {
   predictions: Record<string, number>;
   total: number;
   average: number;
-  stdDev: number;
-}
-
-export interface PredictionRequest {
-  site: string;
-  sector: string;
-  selectedDate: string;
-  file?: File;
 }
 
 // Helper function to convert backend response to app format
@@ -47,7 +38,6 @@ export function convertBackendResponse(backendData: BackendPredictionResponse): 
   return {
     predictions,
     total: backendData.total,
-    average: backendData.average,
-    stdDev: backendData.stdDev
+    average: backendData.average
   };
 }

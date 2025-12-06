@@ -15,15 +15,14 @@ import {
 } from "@/types/api";
 
 // Zod schema for validating backend API response
-// Expected format: { predictions: {"2024-01-15": 150, ...}, total: 1050, average: 150, stdDev: 25.5 }
+// Expected format: { predictions: {"2024-01-15": 150, ...}, total: 1050, average: 150 }
 const BackendPredictionResponseSchema = z.object({
   predictions: z.record(
     z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
     z.number().finite().nonnegative()
   ),
   total: z.number().finite().nonnegative(),
-  average: z.number().finite().nonnegative(),
-  stdDev: z.number().finite().nonnegative()
+  average: z.number().finite().nonnegative()
 });
 
 // API base URL - configure this for your local Python backend
@@ -36,7 +35,6 @@ interface StoredPrediction {
   predictions: DailyPrediction[];
   total: number;
   average: number;
-  stdDev: number;
   filters: {
     site: string;
     sector: string;
@@ -90,9 +88,6 @@ const Index = () => {
   );
   const [average, setAverage] = useState<number | null>(
     lastPrediction?.average ?? null
-  );
-  const [stdDev, setStdDev] = useState<number | null>(
-    lastPrediction?.stdDev ?? null
   );
   const [noData, setNoData] = useState(false);
   
@@ -161,7 +156,6 @@ const Index = () => {
       setPredictions(convertedData.predictions);
       setTotal(convertedData.total);
       setAverage(convertedData.average);
-      setStdDev(convertedData.stdDev);
       setNoData(false);
       setIsMockData(false); // Real data from API
       setHasProcessedInSession(true); // Mark as processed in current session
@@ -171,7 +165,6 @@ const Index = () => {
         predictions: convertedData.predictions,
         total: convertedData.total,
         average: convertedData.average,
-        stdDev: convertedData.stdDev,
         filters: {
           site: selectedSite,
           sector: selectedSector,
@@ -231,13 +224,10 @@ const Index = () => {
       // Calculate mock statistics (simulating what backend would return)
       const mockTotal = mockPredictions.reduce((sum, p) => sum + p.value, 0);
       const mockAverage = Math.round(mockTotal / mockPredictions.length);
-      const variance = mockPredictions.reduce((sum, p) => sum + Math.pow(p.value - mockAverage, 2), 0) / mockPredictions.length;
-      const mockStdDev = Math.round(Math.sqrt(variance) * 10) / 10;
       
       setPredictions(mockPredictions);
       setTotal(mockTotal);
       setAverage(mockAverage);
-      setStdDev(mockStdDev);
       setIsMockData(true); // Mark as mock data
       setHasProcessedInSession(true); // Mark as processed in current session
       
@@ -246,7 +236,6 @@ const Index = () => {
         predictions: mockPredictions,
         total: mockTotal,
         average: mockAverage,
-        stdDev: mockStdDev,
         filters: {
           site: selectedSite,
           sector: selectedSector,
