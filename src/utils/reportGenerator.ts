@@ -312,5 +312,36 @@ export async function generateReport(data: PDFData): Promise<void> {
   // Add footer to second page
   addFooter(pdf, 2, totalPages);
 
-  pdf.save("harvest-report-" + new Date().toISOString().split("T")[0] + ".pdf");
+  // Generate PDF blob
+  const pdfBlob = pdf.output("blob");
+  const fileName = "harvest-report-" + new Date().toISOString().split("T")[0] + ".pdf";
+
+  // Try to use File System Access API (allows user to choose save location)
+  if ("showSaveFilePicker" in window) {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: fileName,
+        types: [
+          {
+            description: "PDF Document",
+            accept: { "application/pdf": [".pdf"] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(pdfBlob);
+      await writable.close();
+      return;
+    } catch (err: any) {
+      // User cancelled the save dialog
+      if (err.name === "AbortError") {
+        return;
+      }
+      // Fallback to traditional download if API fails
+      console.warn("File System Access API failed, falling back to download:", err);
+    }
+  }
+
+  // Fallback for browsers that don't support File System Access API
+  pdf.save(fileName);
 }
