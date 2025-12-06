@@ -317,6 +317,8 @@ export async function generateReport(data: PDFData): Promise<void> {
   const fileName = "harvest-report-" + new Date().toISOString().split("T")[0] + ".pdf";
 
   // Try to use File System Access API (allows user to choose save location)
+  // Note: This API only works in Chrome/Edge and requires secure context (HTTPS or localhost)
+  // It may not work in iframes due to security restrictions
   if ("showSaveFilePicker" in window) {
     try {
       const handle = await (window as any).showSaveFilePicker({
@@ -337,8 +339,13 @@ export async function generateReport(data: PDFData): Promise<void> {
       if (err.name === "AbortError") {
         return;
       }
-      // Fallback to traditional download if API fails
-      console.warn("File System Access API failed, falling back to download:", err);
+      // SecurityError occurs in iframes/restricted contexts
+      if (err.name === "SecurityError") {
+        console.log("File System Access API not available in this context, using download fallback");
+      } else {
+        // Fallback to traditional download if API fails
+        console.warn("File System Access API failed, falling back to download:", err);
+      }
     }
   }
 
