@@ -7,13 +7,12 @@ import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
 import { HarvestStats } from "@/components/HarvestStats";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
-import { generateReport, InfluencingFactorData } from "@/utils/reportGenerator";
+import { generateReport } from "@/utils/reportGenerator";
 import { 
   DailyPrediction, 
   BackendPredictionResponse, 
   convertBackendPredictions, 
-  calculateStats,
-  InfluencingFactor
+  calculateStats
 } from "@/types/api";
 
 // Zod schema for validating backend API response
@@ -31,13 +30,11 @@ const LAST_PREDICTION_KEY = "summerberry_last_prediction";
 
 interface StoredPrediction {
   predictions: DailyPrediction[];
-  factors: InfluencingFactor[] | null;
   total: number;
   average: number;
   filters: {
     site: string;
     sector: string;
-    plantationDate: string;
   };
   timestamp: string;
 }
@@ -82,9 +79,6 @@ const Index = () => {
   // API response state - initialized with last prediction if available
   const [predictions, setPredictions] = useState<DailyPrediction[] | null>(
     lastPrediction?.predictions || null
-  );
-  const [factors, setFactors] = useState<InfluencingFactor[] | null>(
-    lastPrediction?.factors || null
   );
   const [total, setTotal] = useState<number | null>(
     lastPrediction?.total ?? null
@@ -167,13 +161,11 @@ const Index = () => {
       // Save to localStorage for persistence
       saveLastPrediction({
         predictions: convertedPredictions,
-        factors: null, // Will be populated when API returns factors
         total: stats.total,
         average: stats.average,
         filters: {
           site: selectedSite,
           sector: selectedSector,
-          plantationDate: "",
         },
         timestamp: new Date().toISOString(),
       });
@@ -239,13 +231,11 @@ const Index = () => {
       // Save mock data to localStorage
       saveLastPrediction({
         predictions: mockPredictions,
-        factors: null,
         total: mockTotal,
         average: mockAverage,
         filters: {
           site: selectedSite,
           sector: selectedSector,
-          plantationDate: "",
         },
         timestamp: new Date().toISOString(),
       });
@@ -277,15 +267,6 @@ const Index = () => {
     setHasProcessedInSession(false);
   };
 
-  // Default factors for PDF when API doesn't provide them
-  const defaultFactors: InfluencingFactorData[] = [
-    { name: "Temperature", importance: 78, correlation: "positive" },
-    { name: "Flower Abortion Rate", importance: 72, correlation: "negative" },
-    { name: "Irrigation Volume", importance: 55, correlation: "positive" },
-    { name: "Humidity", importance: 48, correlation: "positive" },
-    { name: "Solar Radiation", importance: 42, correlation: "positive" },
-  ];
-
   // Generate PDF report
   const handleGenerateReport = async () => {
     if (!predictions || predictions.length === 0) {
@@ -306,12 +287,6 @@ const Index = () => {
       average: average ?? 0,
       site: selectedSite,
       sector: selectedSector,
-      plantationDate: "",
-      factors: factors?.map(f => ({
-        name: f.name,
-        importance: f.importance,
-        correlation: f.correlation
-      })) || defaultFactors,
       chartElement
     };
 
