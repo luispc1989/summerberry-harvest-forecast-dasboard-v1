@@ -1,4 +1,4 @@
-import { Filter, MapPin, Grid3x3, CalendarDays, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2 } from "lucide-react";
+import { Filter, MapPin, Grid3x3, CalendarDays, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2, FileDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,9 @@ interface FilterSidebarProps {
   onPlantationDateChange: (date: string) => void;
   onFileUpload?: (file: File | null) => void;
   onProcessData?: () => void;
+  onGenerateReport?: () => void;
   isProcessing?: boolean;
+  hasPredictions?: boolean;
 }
 
 const plantationDates = [
@@ -85,7 +87,9 @@ export const FilterSidebar = ({
   onPlantationDateChange,
   onFileUpload,
   onProcessData,
-  isProcessing = false
+  onGenerateReport,
+  isProcessing = false,
+  hasPredictions = false
 }: FilterSidebarProps) => {
   const sectorOptions = getSectorOptions(selectedSite);
   const isAllSites = selectedSite === 'all';
@@ -309,6 +313,16 @@ export const FilterSidebar = ({
                     </>
                   )}
                 </Button>
+                {hasPredictions && (
+                  <Button 
+                    variant="outline"
+                    className="w-full gap-2 mt-2"
+                    onClick={onGenerateReport}
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Generate PDF Report
+                  </Button>
+                )}
               </div>
             ) : (
               <div 
