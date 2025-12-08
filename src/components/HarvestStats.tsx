@@ -36,41 +36,32 @@ export const HarvestStats = ({
         <CardDescription>Predicted harvest for the next 7 days</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Horizontal table with 7 columns */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                {predictions.map((pred, index) => (
-                  <th key={index} className="px-2 py-3 text-center">
-                    <div className="text-sm font-semibold text-foreground">{pred.day}</div>
-                    <div className="text-xs text-muted-foreground">{pred.date}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {predictions.map((pred, index) => (
-                  <td key={index} className="px-2 py-4 text-center">
-                    <span className="text-lg font-bold text-foreground">{pred.value}</span>
-                    <span className="text-sm text-muted-foreground ml-1">kg</span>
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
+        {/* 7 day cards in a responsive grid */}
+        <div className="grid grid-cols-7 gap-3">
+          {predictions.map((pred, index) => (
+            <div 
+              key={index} 
+              className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/60 transition-colors"
+            >
+              <span className="text-xs font-semibold text-primary uppercase tracking-wide">{pred.day}</span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">{pred.date}</span>
+              <div className="mt-3">
+                <span className="text-xl font-bold text-foreground">{pred.value}</span>
+                <span className="text-xs text-muted-foreground ml-1">kg</span>
+              </div>
+            </div>
+          ))}
         </div>
         
-        {/* Total and Average - centered below */}
-        <div className="flex justify-center gap-12 pt-4 border-t border-border">
-          <div className="text-center space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total (7 days)</p>
+        {/* Total and Average */}
+        <div className="flex justify-center gap-16 pt-4 border-t border-border">
+          <div className="text-center">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total (7 days)</p>
             <p className="text-2xl font-bold text-primary">{total} kg</p>
           </div>
           
-          <div className="text-center space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Daily Average</p>
+          <div className="text-center">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Daily Average</p>
             <p className="text-2xl font-bold text-foreground">{average} kg</p>
           </div>
         </div>
