@@ -338,22 +338,20 @@ const Index = () => {
               </div>
             ) : (
               <section className="space-y-6">
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <PredictedHarvestChart 
-                    site={selectedSite} 
-                    selectedDate={selectedDate}
-                    sector={selectedSector}
-                    apiPredictions={predictions}
-                  />
-                  <HarvestStats 
-                    site={selectedSite}
-                    selectedDate={selectedDate}
-                    sector={selectedSector}
-                    apiPredictions={predictions}
-                    apiTotal={total}
-                    apiAverage={average}
-                  />
-                </div>
+                <PredictedHarvestChart 
+                  site={selectedSite} 
+                  selectedDate={selectedDate}
+                  sector={selectedSector}
+                  apiPredictions={predictions}
+                />
+                <HarvestStats 
+                  site={selectedSite}
+                  selectedDate={selectedDate}
+                  sector={selectedSector}
+                  apiPredictions={predictions}
+                  apiTotal={total}
+                  apiAverage={average}
+                />
               </section>
             )}
           </div>

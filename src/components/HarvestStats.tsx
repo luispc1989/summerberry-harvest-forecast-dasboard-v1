@@ -6,7 +6,6 @@ interface HarvestStatsProps {
   site: string;
   selectedDate: Date;
   sector: string;
-  // API data - when provided, uses this instead of mock calculations
   apiPredictions?: DailyPrediction[] | null;
   apiTotal?: number | null;
   apiAverage?: number | null;
@@ -20,7 +19,6 @@ export const HarvestStats = ({
   apiTotal,
   apiAverage
 }: HarvestStatsProps) => {
-  // Use API data if available, otherwise fall back to mock calculations
   const mockStats = calculatePredictions({ 
     site, 
     selectedDate, 
@@ -33,33 +31,45 @@ export const HarvestStats = ({
   
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <CardTitle>7-Day Harvest Statistics</CardTitle>
         <CardDescription>Predicted harvest for the next 7 days</CardDescription>
       </CardHeader>
-      <CardContent className="h-[480px] space-y-6">
-        <div className="space-y-1.5">
-          {predictions.map((pred, index) => (
-            <div 
-              key={index} 
-              className="flex justify-between items-center px-4 py-2.5 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">{pred.day}</span>
-                <span className="text-xs text-muted-foreground">{pred.date}</span>
-              </div>
-              <span className="text-base font-semibold text-foreground">{pred.value} kg</span>
-            </div>
-          ))}
+      <CardContent className="space-y-6">
+        {/* Horizontal table with 7 columns */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                {predictions.map((pred, index) => (
+                  <th key={index} className="px-2 py-3 text-center">
+                    <div className="text-sm font-semibold text-foreground">{pred.day}</div>
+                    <div className="text-xs text-muted-foreground">{pred.date}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {predictions.map((pred, index) => (
+                  <td key={index} className="px-2 py-4 text-center">
+                    <span className="text-lg font-bold text-foreground">{pred.value}</span>
+                    <span className="text-sm text-muted-foreground ml-1">kg</span>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-          <div className="space-y-1.5">
+        {/* Total and Average - centered below */}
+        <div className="flex justify-center gap-12 pt-4 border-t border-border">
+          <div className="text-center space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total (7 days)</p>
             <p className="text-2xl font-bold text-primary">{total} kg</p>
           </div>
           
-          <div className="space-y-1.5">
+          <div className="text-center space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Daily Average</p>
             <p className="text-2xl font-bold text-foreground">{average} kg</p>
           </div>
