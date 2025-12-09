@@ -313,31 +313,32 @@ export const FilterSidebar = ({
                     </Button>
                   </div>
                 </div>
-                <Button 
-                  className="w-full gap-2"
-                  onClick={onProcessData}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4" />
-                      Process Predictions
-                    </>
-                  )}
-                </Button>
-                {hasPredictions && (
+                {hasPredictions ? (
                   <Button 
                     variant="outline"
-                    className="w-full gap-2 mt-2"
+                    className="w-full gap-2"
                     onClick={onGenerateReport}
                   >
                     <FileDown className="h-4 w-4" />
                     Generate PDF Report
+                  </Button>
+                ) : (
+                  <Button 
+                    className="w-full gap-2"
+                    onClick={onProcessData}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Process Predictions
+                      </>
+                    )}
                   </Button>
                 )}
               </div>
