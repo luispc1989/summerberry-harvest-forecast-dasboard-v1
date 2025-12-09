@@ -315,8 +315,7 @@ export const FilterSidebar = ({
                 </div>
                 {hasPredictions ? (
                   <Button 
-                    variant="outline"
-                    className="w-full gap-2"
+                    className="w-full gap-2 bg-orange-500 hover:bg-orange-600 text-white"
                     onClick={onGenerateReport}
                   >
                     <FileDown className="h-4 w-4" />

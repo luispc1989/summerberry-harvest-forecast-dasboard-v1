@@ -50,11 +50,14 @@ export const HarvestStats = ({
   const total = apiTotal ?? mockStats.total;
   const average = apiAverage ?? mockStats.average;
   
-  // Calculate aggregated error using standard error propagation: sqrt(sum of squared errors)
+  // Calculate aggregated error as simple sum of daily errors
   const hasErrorData = predictions.some(p => p.error !== undefined);
   const aggregatedError = hasErrorData 
-    ? Math.round(Math.sqrt(predictions.reduce((sum, p) => sum + Math.pow(p.error || 0, 2), 0)))
+    ? Math.round(predictions.reduce((sum, p) => sum + (p.error || 0), 0))
     : null;
+  
+  // Calculate total as sum of daily values (frontend responsibility)
+  const calculatedTotal = predictions.reduce((sum, p) => sum + p.value, 0);
   
   return (
     <Card>
@@ -87,13 +90,13 @@ export const HarvestStats = ({
         <div className="flex justify-center gap-16 pt-4 border-t border-border">
           <div className="text-center">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Harvest Prediction (7 days)</p>
-            <p className="text-2xl font-bold text-primary">{total} kg</p>
+            <p className="text-2xl font-bold text-primary">{calculatedTotal} kg</p>
           </div>
           
           {aggregatedError !== null && (
             <div className="text-center">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Prediction Error (7 days)</p>
-              <p className="text-2xl font-bold text-foreground">{total} ± {aggregatedError} kg</p>
+              <p className="text-2xl font-bold text-foreground">± {aggregatedError} kg</p>
             </div>
           )}
         </div>
