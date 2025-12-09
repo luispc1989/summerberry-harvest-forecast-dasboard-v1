@@ -27,7 +27,26 @@ export const HarvestStats = ({
     sector
   });
   
-  const predictions = apiPredictions || mockStats.predictions;
+  // Use API predictions if available, otherwise use mock
+  const rawPredictions = apiPredictions || mockStats.predictions;
+  
+  // Ensure all predictions have error data (add mock error if missing)
+  const predictions = rawPredictions.map((pred, index) => {
+    if (pred.error !== undefined) {
+      return pred;
+    }
+    // Calculate mock error (5-10% of value) if not provided
+    const pseudoRandom = (Math.sin(index * 1234) + 1) / 2;
+    const errorPercent = 0.05 + pseudoRandom * 0.05;
+    const error = Math.round(pred.value * errorPercent);
+    return {
+      ...pred,
+      error,
+      lower: pred.value - error,
+      upper: pred.value + error
+    };
+  });
+  
   const total = apiTotal ?? mockStats.total;
   const average = apiAverage ?? mockStats.average;
   
