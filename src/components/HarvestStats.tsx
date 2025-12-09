@@ -50,10 +50,10 @@ export const HarvestStats = ({
   const total = apiTotal ?? mockStats.total;
   const average = apiAverage ?? mockStats.average;
   
-  // Calculate average error if available
+  // Calculate aggregated error using standard error propagation: sqrt(sum of squared errors)
   const hasErrorData = predictions.some(p => p.error !== undefined);
-  const avgError = hasErrorData 
-    ? Math.round(predictions.reduce((sum, p) => sum + (p.error || 0), 0) / predictions.length)
+  const aggregatedError = hasErrorData 
+    ? Math.round(Math.sqrt(predictions.reduce((sum, p) => sum + Math.pow(p.error || 0, 2), 0)))
     : null;
   
   return (
@@ -76,21 +76,24 @@ export const HarvestStats = ({
                 <span className="text-xl font-bold text-foreground">{pred.value}</span>
                 <span className="text-xs text-muted-foreground ml-1">kg</span>
               </div>
+              {pred.error !== undefined && (
+                <span className="text-[10px] text-muted-foreground mt-1">±{pred.error} kg</span>
+              )}
             </div>
           ))}
         </div>
         
-        {/* Total and Error */}
+        {/* Total Harvest Prediction and Total Prediction Error */}
         <div className="flex justify-center gap-16 pt-4 border-t border-border">
           <div className="text-center">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total (7 days)</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Harvest Prediction (7 days)</p>
             <p className="text-2xl font-bold text-primary">{total} kg</p>
           </div>
           
-          {avgError !== null && (
+          {aggregatedError !== null && (
             <div className="text-center">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Predicted Error</p>
-              <p className="text-2xl font-bold text-foreground">{total} ± {avgError} kg</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Prediction Error (7 days)</p>
+              <p className="text-2xl font-bold text-foreground">{total} ± {aggregatedError} kg</p>
             </div>
           )}
         </div>
