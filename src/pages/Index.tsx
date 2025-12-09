@@ -6,6 +6,7 @@ import { PredictedHarvestChart } from "@/components/PredictedHarvestChart";
 
 import { HarvestStats } from "@/components/HarvestStats";
 import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
 import { generateReport } from "@/utils/reportGenerator";
 import { 
@@ -337,6 +338,8 @@ const Index = () => {
                   </p>
                 </div>
               </div>
+            ) : predictions === null || predictions.length === 0 ? (
+              <EmptyState />
             ) : (
               <section className="space-y-6">
                 <PredictedHarvestChart 
