@@ -83,16 +83,11 @@ export const HarvestStats = ({
           ))}
         </div>
         
-        {/* Total, Average, and Error */}
+        {/* Total and Error */}
         <div className="flex justify-center gap-16 pt-4 border-t border-border">
           <div className="text-center">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total (7 days)</p>
             <p className="text-2xl font-bold text-primary">{total} kg</p>
-          </div>
-          
-          <div className="text-center">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Daily Average</p>
-            <p className="text-2xl font-bold text-foreground">{average} kg</p>
           </div>
           
           {avgError !== null && (
