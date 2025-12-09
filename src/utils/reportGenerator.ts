@@ -182,9 +182,9 @@ export async function generateReport(data: PDFData): Promise<void> {
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(10);
-  pdf.text(`Total: ${data.total.toLocaleString()} kg`, MARGIN + 5, y + 6.5);
+  pdf.text(`Total Harvest Prediction (7 days): ${data.total.toLocaleString()} kg`, MARGIN + 5, y + 6.5);
   if (data.avgError !== null && data.avgError !== undefined) {
-    pdf.text(`Predicted Error: ±${data.avgError.toLocaleString()} kg`, MARGIN + 100, y + 6.5);
+    pdf.text(`Total Prediction Error (7 days): ${data.total.toLocaleString()} ± ${data.avgError.toLocaleString()} kg`, MARGIN + 80, y + 6.5);
   }
   y += 15;
 
