@@ -77,7 +77,7 @@ export const HarvestStats = ({
                 <span className="text-xs text-muted-foreground ml-1">kg</span>
               </div>
               {pred.error !== undefined && (
-                <span className="text-[10px] text-muted-foreground mt-1">±{pred.error}</span>
+                <span className="text-[10px] text-muted-foreground mt-1">±{pred.error} kg</span>
               )}
             </div>
           ))}
@@ -92,7 +92,7 @@ export const HarvestStats = ({
           
           {avgError !== null && (
             <div className="text-center">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Predicted ± Error</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Predicted Error</p>
               <p className="text-2xl font-bold text-foreground">±{avgError} kg</p>
             </div>
           )}

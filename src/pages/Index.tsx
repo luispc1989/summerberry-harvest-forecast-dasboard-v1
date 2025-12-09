@@ -287,14 +287,21 @@ const Index = () => {
     // Find the chart element
     const chartElement = document.querySelector('[data-chart="predicted-harvest"]') as HTMLElement | null;
 
+    // Calculate average error from predictions
+    const hasErrorData = predictions.some(p => p.error !== undefined);
+    const avgError = hasErrorData 
+      ? Math.round(predictions.reduce((sum, p) => sum + (p.error || 0), 0) / predictions.length)
+      : null;
+
     const reportData = {
       predictions: predictions.map(p => ({
         day: p.day,
         date: p.date,
-        value: p.value
+        value: p.value,
+        error: p.error
       })),
       total: total ?? 0,
-      average: average ?? 0,
+      avgError,
       site: selectedSite,
       sector: selectedSector,
       chartElement

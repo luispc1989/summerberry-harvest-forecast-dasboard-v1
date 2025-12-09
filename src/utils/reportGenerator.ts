@@ -3,9 +3,9 @@ import html2canvas from "html2canvas";
 import logoImage from "@/assets/summerberry-logo.png";
 
 export interface PDFData {
-  predictions: Array<{ day: string; date: string; value: number }>;
+  predictions: Array<{ day: string; date: string; value: number; error?: number }>;
   total: number;
-  average: number;
+  avgError?: number | null;
   site: string;
   sector: string;
   chartElement?: HTMLElement | null;
@@ -175,7 +175,7 @@ export async function generateReport(data: PDFData): Promise<void> {
     y += 6;
   });
 
-  // Totals row
+  // Totals row with Total and Predicted Error
   y += 2;
   pdf.setFillColor(...PRIMARY_GREEN);
   pdf.rect(MARGIN, y, CONTENT_WIDTH, 10, "F");
@@ -183,55 +183,10 @@ export async function generateReport(data: PDFData): Promise<void> {
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(10);
   pdf.text(`Total: ${data.total.toLocaleString()} kg`, MARGIN + 5, y + 6.5);
-  pdf.text(`Daily Average: ${data.average.toLocaleString()} kg`, MARGIN + 100, y + 6.5);
-  y += 15;
-
-  // Summary Statistics Section
-  pdf.setFontSize(12);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(...PRIMARY_BLUE);
-  pdf.text("Summary Statistics", MARGIN, y);
-  y += 8;
-
-  const minPrediction = Math.min(...data.predictions.map(p => p.value));
-  const maxPrediction = Math.max(...data.predictions.map(p => p.value));
-  const minDay = data.predictions.find(p => p.value === minPrediction);
-  const maxDay = data.predictions.find(p => p.value === maxPrediction);
-
-  // Stats table
-  const statsData = [
-    ["Metric", "Value"],
-    ["Total 7-Day Forecast", `${data.total.toLocaleString()} kg`],
-    ["Daily Average", `${data.average.toLocaleString()} kg`],
-    ["Highest Day", `${maxDay?.day} (${maxDay?.date}) - ${maxPrediction.toLocaleString()} kg`],
-    ["Lowest Day", `${minDay?.day} (${minDay?.date}) - ${minPrediction.toLocaleString()} kg`],
-    ["Variance (Max-Min)", `${(maxPrediction - minPrediction).toLocaleString()} kg`],
-  ];
-
-  // Table header
-  pdf.setFillColor(240, 240, 240);
-  pdf.rect(MARGIN, y, CONTENT_WIDTH, 8, "F");
-  pdf.setFontSize(9);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(...DARK_GRAY);
-  pdf.text(statsData[0][0], MARGIN + 5, y + 5.5);
-  pdf.text(statsData[0][1], MARGIN + 70, y + 5.5);
-  y += 9;
-
-  // Table rows
-  pdf.setFont("helvetica", "normal");
-  for (let i = 1; i < statsData.length; i++) {
-    if (i % 2 === 0) {
-      pdf.setFillColor(250, 250, 250);
-      pdf.rect(MARGIN, y - 1, CONTENT_WIDTH, 6, "F");
-    }
-    pdf.setTextColor(...DARK_GRAY);
-    pdf.text(statsData[i][0], MARGIN + 5, y + 3);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(statsData[i][1], MARGIN + 70, y + 3);
-    pdf.setFont("helvetica", "normal");
-    y += 6;
+  if (data.avgError !== null && data.avgError !== undefined) {
+    pdf.text(`Predicted Error: ±${data.avgError.toLocaleString()} kg`, MARGIN + 100, y + 6.5);
   }
+  y += 15;
 
   // Add footer
   addFooter(pdf, 1, 1);
