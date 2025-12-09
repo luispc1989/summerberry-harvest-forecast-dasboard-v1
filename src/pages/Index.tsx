@@ -397,7 +397,9 @@ const Index = () => {
         
         <main className="flex-1 overflow-y-auto bg-background">
           <div className="p-6 space-y-6">
-            {isProcessing ? (
+            {isLoadingLastPredictions ? (
+              <LoadingState message="Loading last predictions..." />
+            ) : isProcessing ? (
               <LoadingState />
             ) : noData ? (
               <div className="flex items-center justify-center h-[400px]">

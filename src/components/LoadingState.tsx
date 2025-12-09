@@ -2,12 +2,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-export const LoadingState = () => {
+interface LoadingStateProps {
+  message?: string;
+}
+
+export const LoadingState = ({ message = "Processing predictions..." }: LoadingStateProps) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-sm">Processing predictions...</span>
+        <span className="text-sm">{message}</span>
       </div>
       
       {/* Chart skeleton */}
