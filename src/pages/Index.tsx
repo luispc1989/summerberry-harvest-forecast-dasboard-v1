@@ -94,10 +94,6 @@ const Index = () => {
   // Track if predictions were processed in current session (not just loaded from localStorage)
   const [hasProcessedInSession, setHasProcessedInSession] = useState(false);
   
-  // TODO: Remove mock data fallback once API integration is complete
-  // When isMockData is true, we're using test data (backend unavailable)
-  // PDF generation should only work with real data in production
-  const [isMockData, setIsMockData] = useState(false);
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
 
   // Fetch last predictions from backend on dashboard load
@@ -135,7 +131,6 @@ const Index = () => {
         setPredictions(convertedData.predictions);
         setTotal(convertedData.total);
         setAverage(convertedData.average);
-        setIsMockData(false);
         
         // Also save to localStorage
         saveLastPrediction({
@@ -217,7 +212,6 @@ const Index = () => {
       setTotal(convertedData.total);
       setAverage(convertedData.average);
       setNoData(false);
-      setIsMockData(false); // Real data from API
       setHasProcessedInSession(true); // Mark as processed in current session
       
       // Save to localStorage for persistence
@@ -235,82 +229,10 @@ const Index = () => {
       toast.success("Predictions processed successfully!");
       
     } catch (err) {
-      // Backend not available - use mock data for testing
-      // TODO: Remove this entire catch block once API integration is complete
-      // When API is live, this should throw an error to the user instead
-      console.log('Backend not available, using mock data:', err);
-      
-      // Generate deterministic mock data based on filters
-      // This ensures different filter combinations produce different results
-      const generateFilterHash = (site: string, sector: string): number => {
-        const str = `${site}-${sector}`;
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-          const char = str.charCodeAt(i);
-          hash = ((hash << 5) - hash) + char;
-          hash = hash & hash;
-        }
-        return Math.abs(hash);
-      };
-      
-      const filterHash = generateFilterHash(selectedSite, selectedSector);
-      const seededRandom = (seed: number, index: number): number => {
-        const x = Math.sin(seed + index * 1000) * 10000;
-        return x - Math.floor(x);
-      };
-      
-      const mockPredictions: DailyPrediction[] = [];
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const baseDate = new Date();
-      
-      // Base values vary by site
-      const siteMultiplier = selectedSite === 'adm' ? 1.2 : selectedSite === 'alm' ? 0.9 : 1.0;
-      // Sector adds variation
-      const sectorOffset = selectedSector === 'all' ? 0 : selectedSector.charCodeAt(0) * 2;
-      
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(baseDate);
-        date.setDate(date.getDate() + i);
-        const randomValue = seededRandom(filterHash, i);
-        const baseValue = 120 + sectorOffset;
-        const variation = randomValue * 180;
-        const value = Math.round((baseValue + variation) * siteMultiplier);
-        // Generate mock error (5-10% of value)
-        const errorPercent = 0.05 + seededRandom(filterHash, i + 100) * 0.05;
-        const error = Math.round(value * errorPercent);
-        mockPredictions.push({
-          day: dayNames[date.getDay()],
-          date: date.toISOString().split('T')[0],
-          value,
-          error,
-          lower: value - error,
-          upper: value + error
-        });
-      }
-      
-      // Calculate mock statistics (simulating what backend would return)
-      const mockTotal = mockPredictions.reduce((sum, p) => sum + p.value, 0);
-      const mockAverage = Math.round(mockTotal / mockPredictions.length);
-      
-      setPredictions(mockPredictions);
-      setTotal(mockTotal);
-      setAverage(mockAverage);
-      setIsMockData(true); // Mark as mock data
-      setHasProcessedInSession(true); // Mark as processed in current session
-      
-      // Save mock data to localStorage
-      saveLastPrediction({
-        predictions: mockPredictions,
-        total: mockTotal,
-        average: mockAverage,
-        filters: {
-          site: selectedSite,
-          sector: selectedSector,
-        },
-        timestamp: new Date().toISOString(),
-      });
-      
-      toast.warning("Backend unavailable - using mock data for demonstration");
+      // Backend not available - show error to user
+      console.error('Backend error:', err);
+      toast.error("Failed to process predictions. Please check your connection to the backend.");
+      setNoData(true);
     } finally {
       setIsProcessing(false);
     }
@@ -347,11 +269,14 @@ const Index = () => {
     // Find the chart element
     const chartElement = document.querySelector('[data-chart="predicted-harvest"]') as HTMLElement | null;
 
-    // Calculate average error from predictions
+    // Calculate total error as sum of daily errors
     const hasErrorData = predictions.some(p => p.error !== undefined);
-    const avgError = hasErrorData 
-      ? Math.round(predictions.reduce((sum, p) => sum + (p.error || 0), 0) / predictions.length)
+    const totalError = hasErrorData 
+      ? Math.round(predictions.reduce((sum, p) => sum + (p.error || 0), 0))
       : null;
+
+    // Calculate total as sum of daily values
+    const calculatedTotal = predictions.reduce((sum, p) => sum + p.value, 0);
 
     const reportData = {
       predictions: predictions.map(p => ({
@@ -360,8 +285,8 @@ const Index = () => {
         value: p.value,
         error: p.error
       })),
-      total: total ?? 0,
-      avgError,
+      total: calculatedTotal,
+      totalError,
       site: selectedSite,
       sector: selectedSector,
       chartElement
