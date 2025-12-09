@@ -65,6 +65,57 @@ const saveLastPrediction = (prediction: StoredPrediction) => {
   }
 };
 
+// Generate mock predictions based on filters (only used when backend unavailable)
+const generateMockPredictions = (site: string, sector: string): { predictions: DailyPrediction[]; total: number; average: number } => {
+  const generateFilterHash = (s: string, sec: string): number => {
+    const str = `${s}-${sec}`;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  };
+  
+  const filterHash = generateFilterHash(site, sector);
+  const seededRandom = (seed: number, index: number): number => {
+    const x = Math.sin(seed + index * 1000) * 10000;
+    return x - Math.floor(x);
+  };
+  
+  const mockPredictions: DailyPrediction[] = [];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const baseDate = new Date();
+  
+  const siteMultiplier = site === 'adm' ? 1.2 : site === 'alm' ? 0.9 : 1.0;
+  const sectorOffset = sector === 'all' ? 0 : sector.charCodeAt(0) * 2;
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + i);
+    const randomValue = seededRandom(filterHash, i);
+    const baseValue = 120 + sectorOffset;
+    const variation = randomValue * 180;
+    const value = Math.round((baseValue + variation) * siteMultiplier);
+    const errorPercent = 0.05 + seededRandom(filterHash, i + 100) * 0.05;
+    const error = Math.round(value * errorPercent);
+    mockPredictions.push({
+      day: dayNames[date.getDay()],
+      date: date.toISOString().split('T')[0],
+      value,
+      error,
+      lower: value - error,
+      upper: value + error
+    });
+  }
+  
+  const mockTotal = mockPredictions.reduce((sum, p) => sum + p.value, 0);
+  const mockAverage = Math.round(mockTotal / mockPredictions.length);
+  
+  return { predictions: mockPredictions, total: mockTotal, average: mockAverage };
+};
+
 const Index = () => {
   // Load last prediction on mount
   const lastPrediction = useMemo(() => loadLastPrediction(), []);
@@ -95,6 +146,9 @@ const Index = () => {
   // Track if predictions were processed in current session (not just loaded from localStorage)
   const [hasProcessedInSession, setHasProcessedInSession] = useState(false);
   
+  // Track if using mock data (backend unavailable)
+  const [isMockData, setIsMockData] = useState(false);
+  
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
 
   // Fetch last predictions from backend on dashboard load
@@ -106,7 +160,7 @@ const Index = () => {
         if (!response.ok) {
           if (response.status === 404) {
             console.log("No previous predictions found in database");
-            return;
+            throw new Error("No predictions found");
           }
           throw new Error(`API error: ${response.status}`);
         }
@@ -117,21 +171,22 @@ const Index = () => {
         const parseResult = BackendPredictionResponseSchema.safeParse(rawData);
         if (!parseResult.success) {
           console.error("Invalid API response format:", parseResult.error);
-          return;
+          throw new Error("Invalid response format");
         }
         
         const data: BackendPredictionResponse = parseResult.data as BackendPredictionResponse;
         
         if (Object.keys(data.predictions).length === 0) {
           console.log("No predictions in last-predictions response");
-          return;
+          throw new Error("Empty predictions");
         }
         
-        // Convert and update state
+        // Convert and update state with real API data
         const convertedData = convertBackendResponse(data);
         setPredictions(convertedData.predictions);
         setTotal(convertedData.total);
         setAverage(convertedData.average);
+        setIsMockData(false);
         
         // Also save to localStorage
         saveLastPrediction({
@@ -145,8 +200,16 @@ const Index = () => {
         console.log("Last predictions loaded from database");
         
       } catch (err) {
-        console.log("Could not fetch last predictions from backend:", err);
-        // Fallback to localStorage data (already loaded in initial state)
+        console.log("Backend unavailable, using mock data for preview:", err);
+        
+        // Generate mock data when backend is unavailable
+        const mockData = generateMockPredictions("all", "all");
+        setPredictions(mockData.predictions);
+        setTotal(mockData.total);
+        setAverage(mockData.average);
+        setIsMockData(true);
+        
+        toast.info("Preview mode: Using demo data (backend not connected)");
       } finally {
         setIsLoadingLastPredictions(false);
       }
@@ -230,10 +293,17 @@ const Index = () => {
       toast.success("Predictions processed successfully!");
       
     } catch (err) {
-      // Backend not available - show error to user
-      console.error('Backend error:', err);
-      toast.error("Failed to process predictions. Please check your connection to the backend.");
-      setNoData(true);
+      // Backend not available - use mock data for preview
+      console.log("Backend unavailable, using mock data:", err);
+      
+      const mockData = generateMockPredictions(selectedSite, selectedSector);
+      setPredictions(mockData.predictions);
+      setTotal(mockData.total);
+      setAverage(mockData.average);
+      setIsMockData(true);
+      setHasProcessedInSession(true);
+      
+      toast.warning("Preview mode: Using demo data (backend not connected)");
     } finally {
       setIsProcessing(false);
     }
