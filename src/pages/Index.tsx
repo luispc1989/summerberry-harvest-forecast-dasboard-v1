@@ -214,10 +214,17 @@ const Index = () => {
         const randomValue = seededRandom(filterHash, i);
         const baseValue = 120 + sectorOffset;
         const variation = randomValue * 180;
+        const value = Math.round((baseValue + variation) * siteMultiplier);
+        // Generate mock error (5-10% of value)
+        const errorPercent = 0.05 + seededRandom(filterHash, i + 100) * 0.05;
+        const error = Math.round(value * errorPercent);
         mockPredictions.push({
           day: dayNames[date.getDay()],
           date: date.toISOString().split('T')[0],
-          value: Math.round((baseValue + variation) * siteMultiplier)
+          value,
+          error,
+          lower: value - error,
+          upper: value + error
         });
       }
       
