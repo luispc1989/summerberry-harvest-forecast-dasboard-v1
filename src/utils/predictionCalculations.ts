@@ -48,10 +48,17 @@ export const calculatePredictions = ({ site, selectedDate, sector }: PredictionP
     
     const predicted = Math.round(basePredicted * predictedMultiplier * dateVariation * dayVariation);
     
+    // Generate mock error (5-10% of predicted value)
+    const errorPercent = 0.05 + pseudoRandom * 0.05;
+    const error = Math.round(predicted * errorPercent);
+    
     predictions.push({
       day: `Day ${i + 1}`,
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: predicted
+      value: predicted,
+      error: error,
+      lower: predicted - error,
+      upper: predicted + error
     });
   }
   
