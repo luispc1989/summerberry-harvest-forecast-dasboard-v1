@@ -1,29 +1,145 @@
-// Types for Python ML API integration
+// Types for Python ML API integration - Hierarchical format
 
+// Individual daily forecast with confidence intervals
+export interface DailyForecast {
+  date: string;
+  value: number;
+  error: number;
+  lower: number;
+  upper: number;
+}
+
+// Legacy format for backwards compatibility
 export interface DailyPrediction {
   day: string;
   date: string;
   value: number;
+  error?: number;
+  lower?: number;
+  upper?: number;
 }
 
-export interface PredictionResponse {
-  predictions: DailyPrediction[];
+// Sector forecast data
+export interface SectorForecast {
+  daily_forecast: DailyForecast[];
   total: number;
   average: number;
 }
 
-// Backend returns predictions with statistics
-// Format: { predictions: {"2025-01-01": 150, ...}, total: 1050, average: 150 }
+// Site forecast data with nested sectors
+export interface SiteForecast {
+  daily_forecast: DailyForecast[];
+  total: number;
+  average: number;
+  sectors: Record<string, SectorForecast>;
+}
+
+// Global (all sites) forecast data
+export interface GlobalForecast {
+  daily_forecast: DailyForecast[];
+  total: number;
+  average: number;
+}
+
+// API response metadata
+export interface ForecastMeta {
+  forecast_horizon_days: number;
+  generated_at: string;
+  units: string;
+  error_metric: string;
+  confidence_level: number;
+}
+
+// Full hierarchical API response
+export interface HierarchicalForecastResponse {
+  meta: ForecastMeta;
+  global: GlobalForecast;
+  sites: Record<string, SiteForecast>;
+}
+
+// App-level prediction response (converted from API)
+export interface PredictionResponse {
+  predictions: DailyPrediction[];
+  total: number;
+  average: number;
+  meta?: ForecastMeta;
+}
+
+// Legacy backend response format (kept for compatibility)
 export interface BackendPredictionResponse {
   predictions: Record<string, number>;
   total: number;
   average: number;
 }
 
-// Helper function to convert backend response to app format
+const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Convert DailyForecast array to DailyPrediction array
+function convertDailyForecasts(forecasts: DailyForecast[]): DailyPrediction[] {
+  return forecasts
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map(forecast => {
+      const dateObj = new Date(forecast.date);
+      return {
+        day: dayNames[dateObj.getDay()],
+        date: forecast.date,
+        value: forecast.value,
+        error: forecast.error,
+        lower: forecast.lower,
+        upper: forecast.upper
+      };
+    });
+}
+
+// Convert hierarchical response based on selected filters
+export function convertHierarchicalResponse(
+  response: HierarchicalForecastResponse,
+  site: string,
+  sector: string
+): PredictionResponse {
+  let forecasts: DailyForecast[];
+  let total: number;
+  let average: number;
+
+  if (site === 'all' || site === 'All Sites') {
+    // Use global forecast for all sites
+    forecasts = response.global.daily_forecast;
+    total = response.global.total;
+    average = response.global.average;
+  } else if (sector === 'all' || sector === 'All Sectors') {
+    // Use site-level forecast
+    const siteData = response.sites[site];
+    if (!siteData) {
+      throw new Error(`Site ${site} not found in response`);
+    }
+    forecasts = siteData.daily_forecast;
+    total = siteData.total;
+    average = siteData.average;
+  } else {
+    // Use sector-level forecast
+    const siteData = response.sites[site];
+    if (!siteData) {
+      throw new Error(`Site ${site} not found in response`);
+    }
+    const sectorData = siteData.sectors[sector];
+    if (!sectorData) {
+      throw new Error(`Sector ${sector} not found for site ${site}`);
+    }
+    forecasts = sectorData.daily_forecast;
+    total = sectorData.total;
+    average = sectorData.average;
+  }
+
+  return {
+    predictions: convertDailyForecasts(forecasts),
+    total,
+    average,
+    meta: response.meta
+  };
+}
+
+// Legacy helper function to convert old backend response to app format
 export function convertBackendResponse(backendData: BackendPredictionResponse): PredictionResponse {
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  
   const predictions = Object.entries(backendData.predictions)
     .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
     .map(([date, value]) => {
