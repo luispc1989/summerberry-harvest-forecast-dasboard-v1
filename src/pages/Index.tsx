@@ -309,19 +309,35 @@ const Index = () => {
     }
   };
 
-  // Update sector when site changes - reset processed state to require new processing
+  // Update sector when site changes - update mock data immediately in demo mode
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
     // Reset to "All Sectors" when site changes
     setSelectedSector("all");
     // Reset processed state - user needs to reprocess with new filters
     setHasProcessedInSession(false);
+    
+    // In demo mode, update predictions immediately when filters change
+    if (isMockData) {
+      const mockData = generateMockPredictions(value, "all");
+      setPredictions(mockData.predictions);
+      setTotal(mockData.total);
+      setAverage(mockData.average);
+    }
   };
 
-  // Handle sector change - reset processed state
+  // Handle sector change - update mock data immediately in demo mode
   const handleSectorChange = (value: string) => {
     setSelectedSector(value);
     setHasProcessedInSession(false);
+    
+    // In demo mode, update predictions immediately when filters change
+    if (isMockData) {
+      const mockData = generateMockPredictions(selectedSite, value);
+      setPredictions(mockData.predictions);
+      setTotal(mockData.total);
+      setAverage(mockData.average);
+    }
   };
 
   const handleFileUpload = (file: File | null) => {
@@ -376,7 +392,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <DashboardHeader />
+      <DashboardHeader isMockData={isMockData} />
       
       <div className="flex flex-1 overflow-hidden">
         <FilterSidebar
