@@ -208,8 +208,6 @@ const Index = () => {
         setTotal(mockData.total);
         setAverage(mockData.average);
         setIsMockData(true);
-        
-        toast.info("Preview mode: Using demo data (backend not connected)");
       } finally {
         setIsLoadingLastPredictions(false);
       }
@@ -302,8 +300,6 @@ const Index = () => {
       setAverage(mockData.average);
       setIsMockData(true);
       setHasProcessedInSession(true);
-      
-      toast.warning("Preview mode: Using demo data (backend not connected)");
     } finally {
       setIsProcessing(false);
     }
