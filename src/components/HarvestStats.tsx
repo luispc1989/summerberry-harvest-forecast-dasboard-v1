@@ -76,9 +76,6 @@ export const HarvestStats = ({
                 <span className="text-xl font-bold text-foreground">{pred.value}</span>
                 <span className="text-xs text-muted-foreground ml-1">kg</span>
               </div>
-              {pred.error !== undefined && (
-                <span className="text-[10px] text-muted-foreground mt-1">±{pred.error} kg</span>
-              )}
             </div>
           ))}
         </div>
