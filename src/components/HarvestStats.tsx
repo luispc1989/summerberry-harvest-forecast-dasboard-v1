@@ -93,7 +93,7 @@ export const HarvestStats = ({
           {avgError !== null && (
             <div className="text-center">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Predicted Error</p>
-              <p className="text-2xl font-bold text-foreground">±{avgError} kg</p>
+              <p className="text-2xl font-bold text-foreground">{total} ± {avgError} kg</p>
             </div>
           )}
         </div>
