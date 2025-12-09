@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { z } from "zod";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
@@ -98,6 +98,66 @@ const Index = () => {
   // When isMockData is true, we're using test data (backend unavailable)
   // PDF generation should only work with real data in production
   const [isMockData, setIsMockData] = useState(false);
+  const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
+
+  // Fetch last predictions from backend on dashboard load
+  useEffect(() => {
+    const fetchLastPredictions = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/last-predictions`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log("No previous predictions found in database");
+            return;
+          }
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const rawData = await response.json();
+        
+        // Validate response schema
+        const parseResult = BackendPredictionResponseSchema.safeParse(rawData);
+        if (!parseResult.success) {
+          console.error("Invalid API response format:", parseResult.error);
+          return;
+        }
+        
+        const data: BackendPredictionResponse = parseResult.data as BackendPredictionResponse;
+        
+        if (Object.keys(data.predictions).length === 0) {
+          console.log("No predictions in last-predictions response");
+          return;
+        }
+        
+        // Convert and update state
+        const convertedData = convertBackendResponse(data);
+        setPredictions(convertedData.predictions);
+        setTotal(convertedData.total);
+        setAverage(convertedData.average);
+        setIsMockData(false);
+        
+        // Also save to localStorage
+        saveLastPrediction({
+          predictions: convertedData.predictions,
+          total: convertedData.total,
+          average: convertedData.average,
+          filters: { site: "all", sector: "all" },
+          timestamp: new Date().toISOString(),
+        });
+        
+        console.log("Last predictions loaded from database");
+        
+      } catch (err) {
+        console.log("Could not fetch last predictions from backend:", err);
+        // Fallback to localStorage data (already loaded in initial state)
+      } finally {
+        setIsLoadingLastPredictions(false);
+      }
+    };
+    
+    fetchLastPredictions();
+  }, []);
 
   // Process predictions - only called when user clicks "Process Predictions" button
   const handleProcessData = async () => {
