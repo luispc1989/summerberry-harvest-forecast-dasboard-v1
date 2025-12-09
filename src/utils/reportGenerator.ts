@@ -5,7 +5,7 @@ import logoImage from "@/assets/summerberry-logo.png";
 export interface PDFData {
   predictions: Array<{ day: string; date: string; value: number; error?: number }>;
   total: number;
-  avgError?: number | null;
+  totalError?: number | null;
   site: string;
   sector: string;
   chartElement?: HTMLElement | null;
@@ -183,8 +183,8 @@ export async function generateReport(data: PDFData): Promise<void> {
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(10);
   pdf.text(`Total Harvest Prediction (7 days): ${data.total.toLocaleString()} kg`, MARGIN + 5, y + 6.5);
-  if (data.avgError !== null && data.avgError !== undefined) {
-    pdf.text(`Total Prediction Error (7 days): ${data.total.toLocaleString()} ± ${data.avgError.toLocaleString()} kg`, MARGIN + 80, y + 6.5);
+  if (data.totalError !== null && data.totalError !== undefined) {
+    pdf.text(`Total Prediction Error (7 days): ± ${data.totalError.toLocaleString()} kg`, MARGIN + 95, y + 6.5);
   }
   y += 15;
 
