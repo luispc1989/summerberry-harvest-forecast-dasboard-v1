@@ -16,14 +16,14 @@ import {
 } from "@/types/api";
 
 // Zod schema for validating backend API response
-// Expected format: { predictions: {"2024-01-15": 150, ...}, total: 1050, average: 150 }
+// Expected format: { predictions: {"2024-01-15": 150, ...}, total: 1420 }
 const BackendPredictionResponseSchema = z.object({
   predictions: z.record(
     z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
     z.number().finite().nonnegative()
   ),
   total: z.number().finite().nonnegative(),
-  average: z.number().finite().nonnegative()
+  average: z.number().finite().nonnegative().optional() // Backend doesn't send average
 });
 
 // API base URL - configure this for your local Python backend
@@ -151,70 +151,26 @@ const Index = () => {
   
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
 
-  // Fetch last predictions from backend on dashboard load
+  // On dashboard load - use localStorage or mock data (no /last-predictions endpoint)
   useEffect(() => {
-    const fetchLastPredictions = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/last-predictions`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            console.log("No previous predictions found in database");
-            throw new Error("No predictions found");
-          }
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        const rawData = await response.json();
-        
-        // Validate response schema
-        const parseResult = BackendPredictionResponseSchema.safeParse(rawData);
-        if (!parseResult.success) {
-          console.error("Invalid API response format:", parseResult.error);
-          throw new Error("Invalid response format");
-        }
-        
-        const data: BackendPredictionResponse = parseResult.data as BackendPredictionResponse;
-        
-        if (Object.keys(data.predictions).length === 0) {
-          console.log("No predictions in last-predictions response");
-          throw new Error("Empty predictions");
-        }
-        
-        // Convert and update state with real API data
-        const convertedData = convertBackendResponse(data);
-        setPredictions(convertedData.predictions);
-        setTotal(convertedData.total);
-        setAverage(convertedData.average);
-        setIsMockData(false);
-        
-        // Also save to localStorage
-        saveLastPrediction({
-          predictions: convertedData.predictions,
-          total: convertedData.total,
-          average: convertedData.average,
-          filters: { site: "all", sector: "all" },
-          timestamp: new Date().toISOString(),
-        });
-        
-        console.log("Last predictions loaded from database");
-        
-      } catch (err) {
-        console.log("Backend unavailable, using mock data for preview:", err);
-        
-        // Generate mock data when backend is unavailable
-        const mockData = generateMockPredictions("all", "all");
-        setPredictions(mockData.predictions);
-        setTotal(mockData.total);
-        setAverage(mockData.average);
-        setIsMockData(true);
-      } finally {
-        setIsLoadingLastPredictions(false);
-      }
-    };
-    
-    fetchLastPredictions();
-  }, []);
+    // Check if we have stored predictions
+    if (lastPrediction?.predictions && lastPrediction.predictions.length > 0) {
+      setPredictions(lastPrediction.predictions);
+      setTotal(lastPrediction.total);
+      setAverage(lastPrediction.average);
+      setIsMockData(false);
+      console.log("Loaded predictions from localStorage");
+    } else {
+      // No stored predictions - use mock data for demo
+      const mockData = generateMockPredictions("all", "all");
+      setPredictions(mockData.predictions);
+      setTotal(mockData.total);
+      setAverage(mockData.average);
+      setIsMockData(true);
+      console.log("No stored predictions, using mock data for preview");
+    }
+    setIsLoadingLastPredictions(false);
+  }, [lastPrediction]);
 
   // Process predictions - only called when user clicks "Process Predictions" button
   const handleProcessData = async () => {
@@ -227,28 +183,44 @@ const Index = () => {
     setNoData(false);
     
     try {
-      const formData = new FormData();
-      formData.append('file', uploadedFile);
-      formData.append('site', selectedSite);
-      formData.append('sector', selectedSector);
+      // Step 1: Upload file to /api/data
+      const fileFormData = new FormData();
+      fileFormData.append('file', uploadedFile);
       
-      formData.append('selectedDate', selectedDateString);
-      
-      const response = await fetch(`${API_BASE_URL}/predict`, {
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/data`, {
         method: 'POST',
-        body: formData,
+        body: fileFormData,
       });
       
-      if (!response.ok) {
-        if (response.status === 404) {
+      if (!uploadResponse.ok) {
+        throw new Error(`File upload failed: ${uploadResponse.status}`);
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      console.log("File uploaded successfully:", uploadResult);
+      
+      // Step 2: Get predictions from /api/filters
+      const filterResponse = await fetch(`${API_BASE_URL}/api/filters`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          site: selectedSite,
+          sector: selectedSector,
+        }),
+      });
+      
+      if (!filterResponse.ok) {
+        if (filterResponse.status === 404) {
           setNoData(true);
           toast.info("No prediction available for this selection");
           return;
         }
-        throw new Error(`API error: ${response.status}`);
+        throw new Error(`API error: ${filterResponse.status}`);
       }
       
-      const rawData = await response.json();
+      const rawData = await filterResponse.json();
       
       // Validate response schema to prevent malformed data issues
       const parseResult = BackendPredictionResponseSchema.safeParse(rawData);
@@ -266,7 +238,7 @@ const Index = () => {
         return;
       }
       
-      // Convert backend response to app format (no frontend calculations)
+      // Convert backend response to app format
       const convertedData = convertBackendResponse(data);
       
       // Update state with real API data
@@ -274,7 +246,8 @@ const Index = () => {
       setTotal(convertedData.total);
       setAverage(convertedData.average);
       setNoData(false);
-      setHasProcessedInSession(true); // Mark as processed in current session
+      setHasProcessedInSession(true);
+      setIsMockData(false);
       
       // Save to localStorage for persistence
       saveLastPrediction({
