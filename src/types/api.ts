@@ -65,11 +65,11 @@ export interface PredictionResponse {
   meta?: ForecastMeta;
 }
 
-// Legacy backend response format (kept for compatibility)
+// Backend response format matching FastAPI /api/filters endpoint
 export interface BackendPredictionResponse {
   predictions: Record<string, number>;
   total: number;
-  average: number;
+  average?: number; // Optional - calculated on frontend if not provided
 }
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -138,7 +138,7 @@ export function convertHierarchicalResponse(
   };
 }
 
-// Legacy helper function to convert old backend response to app format
+// Convert backend /api/filters response to app format
 export function convertBackendResponse(backendData: BackendPredictionResponse): PredictionResponse {
   const predictions = Object.entries(backendData.predictions)
     .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
@@ -151,9 +151,12 @@ export function convertBackendResponse(backendData: BackendPredictionResponse): 
       };
     });
 
+  // Calculate average if not provided by backend
+  const average = backendData.average ?? Math.round(backendData.total / predictions.length);
+
   return {
     predictions,
     total: backendData.total,
-    average: backendData.average
+    average
   };
 }
