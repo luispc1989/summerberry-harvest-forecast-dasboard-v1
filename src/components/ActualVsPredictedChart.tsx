@@ -4,21 +4,15 @@ import { calculatePredictions } from "@/utils/predictionCalculations";
 
 interface ActualVsPredictedChartProps {
   site: string;
-  variety: string;
   selectedDate: Date;
   sector?: string;
-  plantType?: string;
-  plantationDate?: string;
 }
 
-export const ActualVsPredictedChart = ({ site, variety, selectedDate, sector, plantType, plantationDate }: ActualVsPredictedChartProps) => {
+export const ActualVsPredictedChart = ({ site, selectedDate, sector }: ActualVsPredictedChartProps) => {
   const data = calculatePredictions({ 
     site, 
-    variety, 
     selectedDate, 
-    sector: sector || 'A1', 
-    plantType: plantType || 'gc',
-    plantationDate
+    sector: sector || 'A1'
   }).predictions.map(pred => ({
     date: pred.date,
     predicted: pred.value,
