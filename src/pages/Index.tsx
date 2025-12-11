@@ -217,26 +217,20 @@ const Index = () => {
   
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
 
-  // On dashboard load - use localStorage or mock data (only on mount)
+  // On dashboard load - ALWAYS use mock data for demo (no backend connected yet)
+  // TODO: Remove this forced mock mode once backend is integrated
   useEffect(() => {
-    // Check if we have stored predictions (from real API)
-    if (lastPrediction?.predictions && lastPrediction.predictions.length > 0) {
-      setPredictions(lastPrediction.predictions);
-      setTotal(lastPrediction.total);
-      setAverage(lastPrediction.average);
-      setIsMockData(false); // Real data from previous session
-      console.log("Loaded predictions from localStorage (real API data)");
-    } else {
-      // No stored predictions - use mock data for demo
-      const mockData = generateMockPredictions("all", "all");
-      setPredictions(mockData.predictions);
-      setTotal(mockData.total);
-      setAverage(mockData.average);
-      // isMockData is already true by default
-      console.log("No stored predictions, using mock data for preview");
-    }
+    // For development: always use mock data since no backend is connected
+    // Clear any old localStorage data to ensure demo mode
+    localStorage.removeItem(LAST_PREDICTION_KEY);
+    
+    const mockData = generateMockPredictions("all", "all");
+    setPredictions(mockData.predictions);
+    setTotal(mockData.total);
+    setAverage(mockData.average);
+    setIsMockData(true);
+    console.log("Development mode: using mock data for preview");
     setIsLoadingLastPredictions(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reset to initial state (after dismissing error)
