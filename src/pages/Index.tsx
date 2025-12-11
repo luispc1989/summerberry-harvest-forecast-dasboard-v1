@@ -13,7 +13,10 @@ import { generateReport } from "@/utils/reportGenerator";
 import { 
   DailyPrediction, 
   BackendPredictionResponse, 
-  convertBackendResponse
+  HierarchicalForecastResponse,
+  ForecastMeta,
+  convertBackendResponse,
+  convertHierarchicalResponse
 } from "@/types/api";
 
 // Zod schema for upload response (separate from predictions)
@@ -32,6 +35,44 @@ const BackendPredictionResponseSchema = z.object({
   ),
   total: z.number().finite().nonnegative(),
   average: z.number().finite().nonnegative().optional()
+});
+
+// Zod schema for hierarchical /api/last_predictions response
+const DailyForecastSchema = z.object({
+  date: z.string(),
+  value: z.number(),
+  error: z.number().optional(),
+  lower: z.number().optional(),
+  upper: z.number().optional()
+});
+
+const SectorForecastSchema = z.object({
+  daily_forecast: z.array(DailyForecastSchema),
+  total: z.number(),
+  average: z.number()
+});
+
+const SiteForecastSchema = z.object({
+  daily_forecast: z.array(DailyForecastSchema),
+  total: z.number(),
+  average: z.number(),
+  sectors: z.record(SectorForecastSchema)
+});
+
+const HierarchicalForecastResponseSchema = z.object({
+  meta: z.object({
+    forecast_horizon_days: z.number().optional(),
+    generated_at: z.string().optional(),
+    units: z.string().optional(),
+    error_metric: z.string().optional(),
+    confidence_level: z.number().optional()
+  }).optional(),
+  global: z.object({
+    daily_forecast: z.array(DailyForecastSchema),
+    total: z.number(),
+    average: z.number()
+  }),
+  sites: z.record(SiteForecastSchema)
 });
 
 // API base URL - configure this for your local Python backend
@@ -216,21 +257,78 @@ const Index = () => {
   const [isMockData, setIsMockData] = useState(true);
   
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
+  
+  // Store full hierarchical response for filter-based selection
+  const [lastPredictionsData, setLastPredictionsData] = useState<HierarchicalForecastResponse | null>(null);
+  const [forecastMeta, setForecastMeta] = useState<ForecastMeta | null>(null);
 
-  // On dashboard load - ALWAYS use mock data for demo (no backend connected yet)
-  // TODO: Remove this forced mock mode once backend is integrated
+  // On dashboard load - try to fetch last predictions from backend, fallback to mock data
   useEffect(() => {
-    // For development: always use mock data since no backend is connected
-    // Clear any old localStorage data to ensure demo mode
-    localStorage.removeItem(LAST_PREDICTION_KEY);
+    const fetchLastPredictions = async () => {
+      try {
+        console.log("Attempting to fetch last predictions from backend...");
+        
+        const response = await fetchWithTimeout(
+          `${API_BASE_URL}/api/last_predictions`,
+          { method: 'GET' },
+          10000 // 10 second timeout for initial load
+        );
+        
+        if (!response.ok) {
+          throw new Error(`Backend returned ${response.status}`);
+        }
+        
+        const rawData = await response.json();
+        
+        // Validate hierarchical response schema
+        const parseResult = HierarchicalForecastResponseSchema.safeParse(rawData);
+        if (!parseResult.success) {
+          console.warn("Last predictions schema validation failed:", parseResult.error);
+          throw new Error("Invalid response format");
+        }
+        
+        const hierarchicalData = parseResult.data as HierarchicalForecastResponse;
+        
+        // Check if we have actual predictions
+        if (!hierarchicalData.global?.daily_forecast?.length) {
+          console.log("No predictions stored in database yet");
+          throw new Error("No predictions available");
+        }
+        
+        // Store the full hierarchical data for filter-based selection
+        setLastPredictionsData(hierarchicalData);
+        if (hierarchicalData.meta) {
+          setForecastMeta(hierarchicalData.meta as ForecastMeta);
+        }
+        
+        // Convert based on current filters (default: all/all)
+        const convertedData = convertHierarchicalResponse(hierarchicalData, "all", "all");
+        
+        setPredictions(convertedData.predictions);
+        setTotal(convertedData.total);
+        setAverage(convertedData.average);
+        setIsMockData(false);
+        
+        console.log("Loaded last predictions from backend (real data)");
+        
+      } catch (error) {
+        // Backend unavailable or no predictions stored - use mock data
+        console.log("Backend unavailable or no predictions, using mock data:", error);
+        
+        const mockData = generateMockPredictions("all", "all");
+        setPredictions(mockData.predictions);
+        setTotal(mockData.total);
+        setAverage(mockData.average);
+        setIsMockData(true);
+        setLastPredictionsData(null);
+        
+        console.log("Using mock data for preview (Demo Mode)");
+      } finally {
+        setIsLoadingLastPredictions(false);
+      }
+    };
     
-    const mockData = generateMockPredictions("all", "all");
-    setPredictions(mockData.predictions);
-    setTotal(mockData.total);
-    setAverage(mockData.average);
-    setIsMockData(true);
-    console.log("Development mode: using mock data for preview");
-    setIsLoadingLastPredictions(false);
+    fetchLastPredictions();
   }, []);
 
   // Reset to initial state (after dismissing error)
@@ -419,7 +517,7 @@ const Index = () => {
     }
   };
 
-  // Update sector when site changes - update mock data immediately in demo mode
+  // Update sector when site changes - update data based on mode
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
     // Reset to "All Sectors" when site changes
@@ -427,26 +525,48 @@ const Index = () => {
     // Reset processed state - user needs to reprocess with new filters
     setHasProcessedInSession(false);
     
-    // In demo mode, update predictions immediately when filters change
     if (isMockData) {
+      // In demo mode, generate new mock data for the filter combination
       const mockData = generateMockPredictions(value, "all");
       setPredictions(mockData.predictions);
       setTotal(mockData.total);
       setAverage(mockData.average);
+    } else if (lastPredictionsData) {
+      // In live mode, select from hierarchical data based on filters
+      try {
+        const convertedData = convertHierarchicalResponse(lastPredictionsData, value, "all");
+        setPredictions(convertedData.predictions);
+        setTotal(convertedData.total);
+        setAverage(convertedData.average);
+      } catch (error) {
+        console.warn("Filter combination not found in data:", error);
+        // Keep current predictions if filter not found
+      }
     }
   };
 
-  // Handle sector change - update mock data immediately in demo mode
+  // Handle sector change - update data based on mode
   const handleSectorChange = (value: string) => {
     setSelectedSector(value);
     setHasProcessedInSession(false);
     
-    // In demo mode, update predictions immediately when filters change
     if (isMockData) {
+      // In demo mode, generate new mock data for the filter combination
       const mockData = generateMockPredictions(selectedSite, value);
       setPredictions(mockData.predictions);
       setTotal(mockData.total);
       setAverage(mockData.average);
+    } else if (lastPredictionsData) {
+      // In live mode, select from hierarchical data based on filters
+      try {
+        const convertedData = convertHierarchicalResponse(lastPredictionsData, selectedSite, value);
+        setPredictions(convertedData.predictions);
+        setTotal(convertedData.total);
+        setAverage(convertedData.average);
+      } catch (error) {
+        console.warn("Filter combination not found in data:", error);
+        // Keep current predictions if filter not found
+      }
     }
   };
 
@@ -562,6 +682,7 @@ const Index = () => {
                   apiPredictions={predictions}
                   apiTotal={total}
                   apiAverage={average}
+                  meta={forecastMeta}
                 />
               </section>
             )}
