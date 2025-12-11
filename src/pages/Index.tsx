@@ -16,7 +16,14 @@ import {
   convertBackendResponse
 } from "@/types/api";
 
-// Zod schema for validating backend API response
+// Zod schema for upload response (separate from predictions)
+const UploadResponseSchema = z.object({
+  status: z.string(),
+  sheet_count: z.number().optional(),
+  message: z.string().optional()
+});
+
+// Zod schema for validating backend prediction API response
 // Expected format: { predictions: {"2024-01-15": 150, ...}, total: 1420 }
 const BackendPredictionResponseSchema = z.object({
   predictions: z.record(
@@ -24,7 +31,7 @@ const BackendPredictionResponseSchema = z.object({
     z.number().finite().nonnegative()
   ),
   total: z.number().finite().nonnegative(),
-  average: z.number().finite().nonnegative().optional() // Backend doesn't send average
+  average: z.number().finite().nonnegative().optional()
 });
 
 // API base URL - configure this for your local Python backend
@@ -103,56 +110,8 @@ const saveLastPrediction = (prediction: StoredPrediction) => {
   }
 };
 
-// Generate mock predictions based on filters (only used when backend unavailable)
-const generateMockPredictions = (site: string, sector: string): { predictions: DailyPrediction[]; total: number; average: number } => {
-  const generateFilterHash = (s: string, sec: string): number => {
-    const str = `${s}-${sec}`;
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  };
-  
-  const filterHash = generateFilterHash(site, sector);
-  const seededRandom = (seed: number, index: number): number => {
-    const x = Math.sin(seed + index * 1000) * 10000;
-    return x - Math.floor(x);
-  };
-  
-  const mockPredictions: DailyPrediction[] = [];
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const baseDate = new Date();
-  
-  const siteMultiplier = site === 'adm' ? 1.2 : site === 'alm' ? 0.9 : 1.0;
-  const sectorOffset = sector === 'all' ? 0 : sector.charCodeAt(0) * 2;
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(baseDate);
-    date.setDate(date.getDate() + i);
-    const randomValue = seededRandom(filterHash, i);
-    const baseValue = 120 + sectorOffset;
-    const variation = randomValue * 180;
-    const value = Math.round((baseValue + variation) * siteMultiplier);
-    const errorPercent = 0.05 + seededRandom(filterHash, i + 100) * 0.05;
-    const error = Math.round(value * errorPercent);
-    mockPredictions.push({
-      day: dayNames[date.getDay()],
-      date: date.toISOString().split('T')[0],
-      value,
-      error,
-      lower: value - error,
-      upper: value + error
-    });
-  }
-  
-  const mockTotal = mockPredictions.reduce((sum, p) => sum + p.value, 0);
-  const mockAverage = Math.round(mockTotal / mockPredictions.length);
-  
-  return { predictions: mockPredictions, total: mockTotal, average: mockAverage };
-};
+// MOCK DATA REMOVED - Backend integration is now active
+// When API is unavailable, show error state instead of mock data
 
 // Fetch with timeout helper
 const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number): Promise<Response> => {
@@ -205,28 +164,22 @@ const Index = () => {
   // Track if predictions were processed in current session (not just loaded from localStorage)
   const [hasProcessedInSession, setHasProcessedInSession] = useState(false);
   
-  // Track if using mock data (backend unavailable)
-  const [isMockData, setIsMockData] = useState(false);
-  
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
 
-  // On dashboard load - use localStorage or mock data (no /last-predictions endpoint)
+  // On dashboard load - use localStorage only (no mock data fallback)
   useEffect(() => {
     // Check if we have stored predictions
     if (lastPrediction?.predictions && lastPrediction.predictions.length > 0) {
       setPredictions(lastPrediction.predictions);
       setTotal(lastPrediction.total);
       setAverage(lastPrediction.average);
-      setIsMockData(false);
       console.log("Loaded predictions from localStorage");
     } else {
-      // No stored predictions - use mock data for demo
-      const mockData = generateMockPredictions("all", "all");
-      setPredictions(mockData.predictions);
-      setTotal(mockData.total);
-      setAverage(mockData.average);
-      setIsMockData(true);
-      console.log("No stored predictions, using mock data for preview");
+      // No stored predictions - show empty state (no mock data)
+      setPredictions(null);
+      setTotal(null);
+      setAverage(null);
+      console.log("No stored predictions, waiting for user to upload data");
     }
     setIsLoadingLastPredictions(false);
   }, [lastPrediction]);
@@ -285,7 +238,21 @@ const Index = () => {
         throw { type: 'unknown' as ErrorType, details: `File upload failed with status ${uploadResponse.status}: ${errorBody}` };
       }
       
-      const uploadResult = await uploadResponse.json();
+      // Parse upload response (separate schema from predictions)
+      let uploadResult: unknown;
+      try {
+        uploadResult = await uploadResponse.json();
+      } catch (parseError) {
+        throw { type: 'malformed_response' as ErrorType, details: 'Failed to parse upload response JSON' };
+      }
+      
+      // Validate upload response with its own schema (NOT predictions schema)
+      const uploadParseResult = UploadResponseSchema.safeParse(uploadResult);
+      if (!uploadParseResult.success) {
+        console.warn("Upload response validation warning:", uploadParseResult.error);
+        // Don't throw - upload might still be successful even if response format differs
+      }
+      
       console.log("File uploaded successfully:", uploadResult);
       
       // Step 2: Get predictions from /api/filters
@@ -361,7 +328,6 @@ const Index = () => {
       setAverage(convertedData.average);
       setNoData(false);
       setHasProcessedInSession(true);
-      setIsMockData(false);
       
       // Save to localStorage for persistence
       saveLastPrediction({
@@ -403,35 +369,19 @@ const Index = () => {
     }
   };
 
-  // Update sector when site changes - update mock data immediately in demo mode
+  // Update sector when site changes
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
     // Reset to "All Sectors" when site changes
     setSelectedSector("all");
     // Reset processed state - user needs to reprocess with new filters
     setHasProcessedInSession(false);
-    
-    // In demo mode, update predictions immediately when filters change
-    if (isMockData) {
-      const mockData = generateMockPredictions(value, "all");
-      setPredictions(mockData.predictions);
-      setTotal(mockData.total);
-      setAverage(mockData.average);
-    }
   };
 
-  // Handle sector change - update mock data immediately in demo mode
+  // Handle sector change
   const handleSectorChange = (value: string) => {
     setSelectedSector(value);
     setHasProcessedInSession(false);
-    
-    // In demo mode, update predictions immediately when filters change
-    if (isMockData) {
-      const mockData = generateMockPredictions(selectedSite, value);
-      setPredictions(mockData.predictions);
-      setTotal(mockData.total);
-      setAverage(mockData.average);
-    }
   };
 
   const handleFileUpload = (file: File | null) => {
@@ -486,7 +436,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <DashboardHeader isMockData={isMockData} />
+      <DashboardHeader />
       
       <div className="flex flex-1 overflow-hidden">
         <FilterSidebar
