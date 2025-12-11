@@ -212,12 +212,12 @@ const Index = () => {
   // Track if predictions were processed in current session (not just loaded from localStorage)
   const [hasProcessedInSession, setHasProcessedInSession] = useState(false);
   
-  // Track if using mock data (backend unavailable) - once real API data is received, this stays false
-  const [isMockData, setIsMockData] = useState(false);
+  // Track if using mock data (backend unavailable) - starts true until real API data is received
+  const [isMockData, setIsMockData] = useState(true);
   
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
 
-  // On dashboard load - use localStorage or mock data
+  // On dashboard load - use localStorage or mock data (only on mount)
   useEffect(() => {
     // Check if we have stored predictions (from real API)
     if (lastPrediction?.predictions && lastPrediction.predictions.length > 0) {
@@ -232,11 +232,12 @@ const Index = () => {
       setPredictions(mockData.predictions);
       setTotal(mockData.total);
       setAverage(mockData.average);
-      setIsMockData(true);
+      // isMockData is already true by default
       console.log("No stored predictions, using mock data for preview");
     }
     setIsLoadingLastPredictions(false);
-  }, [lastPrediction]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset to initial state (after dismissing error)
   const resetToInitialState = () => {
