@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { calculatePredictions } from "@/utils/predictionCalculations";
 import { DailyPrediction, ForecastMeta } from "@/types/api";
 
 // Helper to compute weekday from ISO date string (YYYY-MM-DD)
@@ -27,26 +28,17 @@ export const HarvestStats = ({
   apiAverage,
   meta
 }: HarvestStatsProps) => {
-  // No mock data fallback - require API predictions
-  if (!apiPredictions || apiPredictions.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>7-Day Harvest Statistics</CardTitle>
-          <CardDescription>No predictions available</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">
-            Upload a data file and process predictions to view statistics.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const mockStats = calculatePredictions({ 
+    site, 
+    selectedDate, 
+    sector
+  });
   
-  // Compute weekdays from ISO dates in frontend (requirement #1)
-  // Also add mock error if missing
-  const predictions = apiPredictions.map((pred, index) => {
+  // Use API predictions if available, otherwise use mock
+  const rawPredictions = apiPredictions || mockStats.predictions;
+  
+  // Compute weekdays from ISO dates in frontend + ensure error data
+  const predictions = rawPredictions.map((pred, index) => {
     const computedDay = getWeekdayFromDate(pred.date);
     
     // Calculate mock error (5-10% of value) if not provided
@@ -65,6 +57,9 @@ export const HarvestStats = ({
       upper: pred.value + error
     };
   });
+  
+  const total = apiTotal ?? mockStats.total;
+  const average = apiAverage ?? mockStats.average;
   
   // Calculate aggregated error as simple sum of daily errors
   const hasErrorData = predictions.some(p => p.error !== undefined);

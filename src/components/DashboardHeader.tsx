@@ -1,9 +1,14 @@
-import { Calendar } from "lucide-react";
+import { Calendar, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 import logo from "@/assets/summerberry-logo.png";
 import { ThemeToggle } from "./ThemeToggle";
+import { Badge } from "@/components/ui/badge";
 
-export const DashboardHeader = () => {
+interface DashboardHeaderProps {
+  isMockData?: boolean;
+}
+
+export const DashboardHeader = ({ isMockData = false }: DashboardHeaderProps) => {
   const today = new Date();
 
   return (
@@ -24,6 +29,19 @@ export const DashboardHeader = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Connection status badge */}
+          {isMockData ? (
+            <Badge variant="secondary" className="gap-1.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+              <WifiOff className="h-3 w-3" />
+              Demo Mode
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              <Wifi className="h-3 w-3" />
+              Live Data
+            </Badge>
+          )}
+          
           <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             {format(today, "PPP")}
