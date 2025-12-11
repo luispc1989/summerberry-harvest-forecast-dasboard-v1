@@ -110,8 +110,56 @@ const saveLastPrediction = (prediction: StoredPrediction) => {
   }
 };
 
-// MOCK DATA REMOVED - Backend integration is now active
-// When API is unavailable, show error state instead of mock data
+// Generate mock predictions based on filters (used when backend unavailable)
+const generateMockPredictions = (site: string, sector: string): { predictions: DailyPrediction[]; total: number; average: number } => {
+  const generateFilterHash = (s: string, sec: string): number => {
+    const str = `${s}-${sec}`;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  };
+  
+  const filterHash = generateFilterHash(site, sector);
+  const seededRandom = (seed: number, index: number): number => {
+    const x = Math.sin(seed + index * 1000) * 10000;
+    return x - Math.floor(x);
+  };
+  
+  const mockPredictions: DailyPrediction[] = [];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const baseDate = new Date();
+  
+  const siteMultiplier = site === 'adm' ? 1.2 : site === 'alm' ? 0.9 : 1.0;
+  const sectorOffset = sector === 'all' ? 0 : sector.charCodeAt(0) * 2;
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + i);
+    const randomValue = seededRandom(filterHash, i);
+    const baseValue = 120 + sectorOffset;
+    const variation = randomValue * 180;
+    const value = Math.round((baseValue + variation) * siteMultiplier);
+    const errorPercent = 0.05 + seededRandom(filterHash, i + 100) * 0.05;
+    const error = Math.round(value * errorPercent);
+    mockPredictions.push({
+      day: dayNames[date.getDay()],
+      date: date.toISOString().split('T')[0],
+      value,
+      error,
+      lower: value - error,
+      upper: value + error
+    });
+  }
+  
+  const mockTotal = mockPredictions.reduce((sum, p) => sum + p.value, 0);
+  const mockAverage = Math.round(mockTotal / mockPredictions.length);
+  
+  return { predictions: mockPredictions, total: mockTotal, average: mockAverage };
+};
 
 // Fetch with timeout helper
 const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number): Promise<Response> => {
@@ -164,22 +212,28 @@ const Index = () => {
   // Track if predictions were processed in current session (not just loaded from localStorage)
   const [hasProcessedInSession, setHasProcessedInSession] = useState(false);
   
+  // Track if using mock data (backend unavailable) - once real API data is received, this stays false
+  const [isMockData, setIsMockData] = useState(false);
+  
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
 
-  // On dashboard load - use localStorage only (no mock data fallback)
+  // On dashboard load - use localStorage or mock data
   useEffect(() => {
-    // Check if we have stored predictions
+    // Check if we have stored predictions (from real API)
     if (lastPrediction?.predictions && lastPrediction.predictions.length > 0) {
       setPredictions(lastPrediction.predictions);
       setTotal(lastPrediction.total);
       setAverage(lastPrediction.average);
-      console.log("Loaded predictions from localStorage");
+      setIsMockData(false); // Real data from previous session
+      console.log("Loaded predictions from localStorage (real API data)");
     } else {
-      // No stored predictions - show empty state (no mock data)
-      setPredictions(null);
-      setTotal(null);
-      setAverage(null);
-      console.log("No stored predictions, waiting for user to upload data");
+      // No stored predictions - use mock data for demo
+      const mockData = generateMockPredictions("all", "all");
+      setPredictions(mockData.predictions);
+      setTotal(mockData.total);
+      setAverage(mockData.average);
+      setIsMockData(true);
+      console.log("No stored predictions, using mock data for preview");
     }
     setIsLoadingLastPredictions(false);
   }, [lastPrediction]);
@@ -328,6 +382,7 @@ const Index = () => {
       setAverage(convertedData.average);
       setNoData(false);
       setHasProcessedInSession(true);
+      setIsMockData(false); // Real API data - never use mock again
       
       // Save to localStorage for persistence
       saveLastPrediction({
@@ -369,19 +424,35 @@ const Index = () => {
     }
   };
 
-  // Update sector when site changes
+  // Update sector when site changes - update mock data immediately in demo mode
   const handleSiteChange = (value: string) => {
     setSelectedSite(value);
     // Reset to "All Sectors" when site changes
     setSelectedSector("all");
     // Reset processed state - user needs to reprocess with new filters
     setHasProcessedInSession(false);
+    
+    // In demo mode, update predictions immediately when filters change
+    if (isMockData) {
+      const mockData = generateMockPredictions(value, "all");
+      setPredictions(mockData.predictions);
+      setTotal(mockData.total);
+      setAverage(mockData.average);
+    }
   };
 
-  // Handle sector change
+  // Handle sector change - update mock data immediately in demo mode
   const handleSectorChange = (value: string) => {
     setSelectedSector(value);
     setHasProcessedInSession(false);
+    
+    // In demo mode, update predictions immediately when filters change
+    if (isMockData) {
+      const mockData = generateMockPredictions(selectedSite, value);
+      setPredictions(mockData.predictions);
+      setTotal(mockData.total);
+      setAverage(mockData.average);
+    }
   };
 
   const handleFileUpload = (file: File | null) => {
@@ -436,7 +507,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <DashboardHeader />
+      <DashboardHeader isMockData={isMockData} />
       
       <div className="flex flex-1 overflow-hidden">
         <FilterSidebar
