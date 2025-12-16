@@ -558,6 +558,18 @@ const Index = () => {
     log('debug', 'FILE', file ? `File selected: ${file.name}` : 'File cleared');
     setUploadedFile(file);
     setHasProcessedInSession(false);
+    
+    // Clear cache and predictions when new file is uploaded
+    if (file) {
+      log('info', 'CACHE', 'Clearing cache for new file upload');
+      setCachedPredictions(null);
+      setPredictions(null);
+      setTotal(null);
+      setAverage(null);
+      setForecastMeta(null);
+      setProcessingError(null);
+      setNoData(false);
+    }
   };
 
   // Generate PDF report
