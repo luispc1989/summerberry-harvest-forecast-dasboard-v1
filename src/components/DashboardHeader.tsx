@@ -1,14 +1,15 @@
-import { Calendar, Wifi, WifiOff } from "lucide-react";
+import { Calendar, Database, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import logo from "@/assets/summerberry-logo.png";
 import { ThemeToggle } from "./ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 
 interface DashboardHeaderProps {
-  isMockData?: boolean;
+  hasData?: boolean;
+  isConnected?: boolean;
 }
 
-export const DashboardHeader = ({ isMockData = false }: DashboardHeaderProps) => {
+export const DashboardHeader = ({ hasData = false, isConnected = true }: DashboardHeaderProps) => {
   const today = new Date();
 
   return (
@@ -29,16 +30,21 @@ export const DashboardHeader = ({ isMockData = false }: DashboardHeaderProps) =>
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Connection status badge */}
-          {isMockData ? (
-            <Badge variant="secondary" className="gap-1.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-              <WifiOff className="h-3 w-3" />
-              Demo Mode
+          {/* Data status badge */}
+          {hasData ? (
+            <Badge variant="secondary" className="gap-1.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              <Database className="h-3 w-3" />
+              Data Loaded
+            </Badge>
+          ) : !isConnected ? (
+            <Badge variant="secondary" className="gap-1.5 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+              <AlertCircle className="h-3 w-3" />
+              Backend Offline
             </Badge>
           ) : (
-            <Badge variant="secondary" className="gap-1.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-              <Wifi className="h-3 w-3" />
-              Live Data
+            <Badge variant="secondary" className="gap-1.5 bg-muted text-muted-foreground">
+              <Database className="h-3 w-3" />
+              No Data
             </Badge>
           )}
           

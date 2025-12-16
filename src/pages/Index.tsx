@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { z } from "zod";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { FilterSidebar } from "@/components/FilterSidebar";
@@ -12,10 +12,8 @@ import { toast } from "sonner";
 import { generateReport } from "@/utils/reportGenerator";
 import { 
   DailyPrediction, 
-  BackendPredictionResponse, 
   HierarchicalForecastResponse,
   ForecastMeta,
-  convertBackendResponse,
   convertHierarchicalResponse
 } from "@/types/api";
 
@@ -26,18 +24,7 @@ const UploadResponseSchema = z.object({
   message: z.string().optional()
 });
 
-// Zod schema for validating backend prediction API response
-// Expected format: { predictions: {"2024-01-15": 150, ...}, total: 1420 }
-const BackendPredictionResponseSchema = z.object({
-  predictions: z.record(
-    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
-    z.number().finite().nonnegative()
-  ),
-  total: z.number().finite().nonnegative(),
-  average: z.number().finite().nonnegative().optional()
-});
-
-// Zod schema for hierarchical /api/last_predictions response
+// Zod schema for hierarchical /api/last_predictions and /api/filters response
 const DailyForecastSchema = z.object({
   date: z.string(),
   value: z.number(),
@@ -78,11 +65,55 @@ const HierarchicalForecastResponseSchema = z.object({
 // API base URL - configure this for your local Python backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-// Storage key for persisting last prediction
-const LAST_PREDICTION_KEY = "summerberry_last_prediction";
-
 // Timeout for API requests (30 seconds)
 const API_TIMEOUT_MS = 30000;
+
+// Debug log levels
+type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+interface DebugLog {
+  timestamp: string;
+  level: LogLevel;
+  category: string;
+  message: string;
+  details?: unknown;
+}
+
+// Debug logging system
+const debugLogs: DebugLog[] = [];
+const MAX_DEBUG_LOGS = 100;
+
+const log = (level: LogLevel, category: string, message: string, details?: unknown) => {
+  const entry: DebugLog = {
+    timestamp: new Date().toISOString(),
+    level,
+    category,
+    message,
+    details
+  };
+  
+  debugLogs.push(entry);
+  if (debugLogs.length > MAX_DEBUG_LOGS) {
+    debugLogs.shift();
+  }
+  
+  // Console output with color coding
+  const prefix = `[${category}]`;
+  switch (level) {
+    case 'error':
+      console.error(`❌ ${prefix}`, message, details || '');
+      break;
+    case 'warn':
+      console.warn(`⚠️ ${prefix}`, message, details || '');
+      break;
+    case 'info':
+      console.info(`ℹ️ ${prefix}`, message, details || '');
+      break;
+    case 'debug':
+      console.log(`🔍 ${prefix}`, message, details || '');
+      break;
+  }
+};
 
 // Error types for specific handling
 type ErrorType = 
@@ -93,6 +124,7 @@ type ErrorType =
   | 'server_error'
   | 'empty_predictions'
   | 'malformed_response'
+  | 'filter_not_found'
   | 'unknown';
 
 interface ProcessingError {
@@ -105,101 +137,18 @@ interface ProcessingError {
 const getErrorMessage = (type: ErrorType, details?: string): string => {
   const messages: Record<ErrorType, string> = {
     timeout: 'Request timed out after 30 seconds. The server may be overloaded or the data processing is taking too long.',
-    network: 'Network error. Please check your connection and ensure the backend server is running.',
+    network: 'Network error. Please check your connection and ensure the backend server is running at ' + API_BASE_URL,
     invalid_format: 'Invalid file format (400). The uploaded file format is not supported or contains invalid data.',
     insufficient_data: 'Insufficient data (422). The uploaded file does not contain enough data to generate predictions.',
     server_error: 'Server error (500). An internal error occurred on the backend server.',
     empty_predictions: 'Empty predictions. The backend returned no predictions for the selected filters.',
     malformed_response: 'Malformed response. The backend returned data in an unexpected format.',
+    filter_not_found: 'Filter combination not found. The selected site/sector combination does not exist in the cached data.',
     unknown: 'An unexpected error occurred.'
   };
   
   const baseMessage = messages[type];
   return details ? `${baseMessage}\n\nDetails: ${details}` : baseMessage;
-};
-
-interface StoredPrediction {
-  predictions: DailyPrediction[];
-  total: number;
-  average: number;
-  filters: {
-    site: string;
-    sector: string;
-  };
-  timestamp: string;
-}
-
-// Load last prediction from localStorage
-const loadLastPrediction = (): StoredPrediction | null => {
-  try {
-    const stored = localStorage.getItem(LAST_PREDICTION_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (err) {
-    console.error("Failed to load last prediction:", err);
-  }
-  return null;
-};
-
-// Save prediction to localStorage
-const saveLastPrediction = (prediction: StoredPrediction) => {
-  try {
-    localStorage.setItem(LAST_PREDICTION_KEY, JSON.stringify(prediction));
-  } catch (err) {
-    console.error("Failed to save prediction:", err);
-  }
-};
-
-// Generate mock predictions based on filters (used when backend unavailable)
-const generateMockPredictions = (site: string, sector: string): { predictions: DailyPrediction[]; total: number; average: number } => {
-  const generateFilterHash = (s: string, sec: string): number => {
-    const str = `${s}-${sec}`;
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  };
-  
-  const filterHash = generateFilterHash(site, sector);
-  const seededRandom = (seed: number, index: number): number => {
-    const x = Math.sin(seed + index * 1000) * 10000;
-    return x - Math.floor(x);
-  };
-  
-  const mockPredictions: DailyPrediction[] = [];
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const baseDate = new Date();
-  
-  const siteMultiplier = site === 'adm' ? 1.2 : site === 'alm' ? 0.9 : 1.0;
-  const sectorOffset = sector === 'all' ? 0 : sector.charCodeAt(0) * 2;
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(baseDate);
-    date.setDate(date.getDate() + i);
-    const randomValue = seededRandom(filterHash, i);
-    const baseValue = 120 + sectorOffset;
-    const variation = randomValue * 180;
-    const value = Math.round((baseValue + variation) * siteMultiplier);
-    const errorPercent = 0.05 + seededRandom(filterHash, i + 100) * 0.05;
-    const error = Math.round(value * errorPercent);
-    mockPredictions.push({
-      day: dayNames[date.getDay()],
-      date: date.toISOString().split('T')[0],
-      value,
-      error,
-      lower: value - error,
-      upper: value + error
-    });
-  }
-  
-  const mockTotal = mockPredictions.reduce((sum, p) => sum + p.value, 0);
-  const mockAverage = Math.round(mockTotal / mockPredictions.length);
-  
-  return { predictions: mockPredictions, total: mockTotal, average: mockAverage };
 };
 
 // Fetch with timeout helper
@@ -221,10 +170,7 @@ const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: nu
 };
 
 const Index = () => {
-  // Load last prediction on mount
-  const lastPrediction = useMemo(() => loadLastPrediction(), []);
-  
-  // Always default to "All Sites" and "All Sectors"
+  // Filter state - default to "All Sites" and "All Sectors"
   const [selectedSite, setSelectedSite] = useState("all");
   const [selectedSector, setSelectedSector] = useState("all");
   
@@ -233,57 +179,78 @@ const Index = () => {
   
   // Memoize today's date to avoid re-renders
   const selectedDate = useMemo(() => new Date(), []);
-  const selectedDateString = useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
   
-  // API response state - initialized with last prediction if available
-  const [predictions, setPredictions] = useState<DailyPrediction[] | null>(
-    lastPrediction?.predictions || null
-  );
-  const [total, setTotal] = useState<number | null>(
-    lastPrediction?.total ?? null
-  );
-  const [average, setAverage] = useState<number | null>(
-    lastPrediction?.average ?? null
-  );
+  // API response state
+  const [predictions, setPredictions] = useState<DailyPrediction[] | null>(null);
+  const [total, setTotal] = useState<number | null>(null);
+  const [average, setAverage] = useState<number | null>(null);
   const [noData, setNoData] = useState(false);
   
   // Error state for displaying detailed errors
   const [processingError, setProcessingError] = useState<ProcessingError | null>(null);
   
-  // Track if predictions were processed in current session (not just loaded from localStorage)
+  // Track if predictions were processed in current session
   const [hasProcessedInSession, setHasProcessedInSession] = useState(false);
   
-  // Track if using mock data (backend unavailable) - starts true until real API data is received
-  const [isMockData, setIsMockData] = useState(true);
-  
+  // Loading state for initial fetch
   const [isLoadingLastPredictions, setIsLoadingLastPredictions] = useState(true);
   
-  // Store full hierarchical response for filter-based selection
-  const [lastPredictionsData, setLastPredictionsData] = useState<HierarchicalForecastResponse | null>(null);
+  // CACHE: Store full hierarchical response for filter-based selection
+  const [cachedPredictions, setCachedPredictions] = useState<HierarchicalForecastResponse | null>(null);
   const [forecastMeta, setForecastMeta] = useState<ForecastMeta | null>(null);
 
-  // On dashboard load - try to fetch last predictions from backend, fallback to mock data
+  // Debug: Show current cache state
+  const [debugMode, setDebugMode] = useState(false);
+
+  // Select predictions from cache based on current filters
+  const selectFromCache = useCallback((site: string, sector: string, cache: HierarchicalForecastResponse | null) => {
+    if (!cache) {
+      log('warn', 'CACHE', 'No cached data available for filter selection');
+      return null;
+    }
+
+    try {
+      log('debug', 'CACHE', `Selecting data for site="${site}", sector="${sector}"`);
+      const convertedData = convertHierarchicalResponse(cache, site, sector);
+      log('info', 'CACHE', `Selected ${convertedData.predictions.length} predictions from cache`, {
+        total: convertedData.total,
+        average: convertedData.average
+      });
+      return convertedData;
+    } catch (error) {
+      log('error', 'CACHE', `Filter selection failed: ${error instanceof Error ? error.message : String(error)}`, {
+        availableSites: Object.keys(cache.sites),
+        requestedSite: site,
+        requestedSector: sector
+      });
+      return null;
+    }
+  }, []);
+
+  // On dashboard load - try to fetch last predictions from backend
   useEffect(() => {
     const fetchLastPredictions = async () => {
+      log('info', 'INIT', 'Fetching last predictions from backend...');
+      
       try {
-        console.log("Attempting to fetch last predictions from backend...");
-        
         const response = await fetchWithTimeout(
           `${API_BASE_URL}/api/last_predictions`,
           { method: 'GET' },
-          10000 // 10 second timeout for initial load
+          10000
         );
         
         if (!response.ok) {
+          log('warn', 'API', `Backend returned ${response.status} for last_predictions`);
           throw new Error(`Backend returned ${response.status}`);
         }
         
         const rawData = await response.json();
+        log('debug', 'API', 'Raw response from /api/last_predictions', rawData);
         
         // Validate hierarchical response schema
         const parseResult = HierarchicalForecastResponseSchema.safeParse(rawData);
         if (!parseResult.success) {
-          console.warn("Last predictions schema validation failed:", parseResult.error);
+          log('error', 'VALIDATION', 'Schema validation failed for last_predictions', parseResult.error.errors);
           throw new Error("Invalid response format");
         }
         
@@ -291,53 +258,53 @@ const Index = () => {
         
         // Check if we have actual predictions
         if (!hierarchicalData.global?.daily_forecast?.length) {
-          console.log("No predictions stored in database yet");
+          log('warn', 'API', 'No predictions stored in database');
           throw new Error("No predictions available");
         }
         
-        // Store the full hierarchical data for filter-based selection
-        setLastPredictionsData(hierarchicalData);
+        // Cache the full hierarchical data
+        setCachedPredictions(hierarchicalData);
         if (hierarchicalData.meta) {
           setForecastMeta(hierarchicalData.meta as ForecastMeta);
         }
         
-        // Convert based on current filters (default: all/all)
-        const convertedData = convertHierarchicalResponse(hierarchicalData, "all", "all");
+        // Select data based on current filters
+        const convertedData = selectFromCache("all", "all", hierarchicalData);
+        if (convertedData) {
+          setPredictions(convertedData.predictions);
+          setTotal(convertedData.total);
+          setAverage(convertedData.average);
+        }
         
-        setPredictions(convertedData.predictions);
-        setTotal(convertedData.total);
-        setAverage(convertedData.average);
-        setIsMockData(false);
+        log('info', 'INIT', 'Successfully loaded last predictions from backend', {
+          sitesAvailable: Object.keys(hierarchicalData.sites),
+          totalPredictions: hierarchicalData.global.daily_forecast.length
+        });
         
-        console.log("Loaded last predictions from backend (real data)");
+        toast.success("Loaded last predictions from database");
         
       } catch (error) {
-        // Backend unavailable or no predictions stored - use mock data
-        console.log("Backend unavailable or no predictions, using mock data:", error);
-        
-        const mockData = generateMockPredictions("all", "all");
-        setPredictions(mockData.predictions);
-        setTotal(mockData.total);
-        setAverage(mockData.average);
-        setIsMockData(true);
-        setLastPredictionsData(null);
-        
-        console.log("Using mock data for preview (Demo Mode)");
+        log('warn', 'INIT', `Could not fetch last predictions: ${error instanceof Error ? error.message : String(error)}`);
+        // No mock data - just show empty state
+        setPredictions(null);
+        setTotal(null);
+        setAverage(null);
+        setCachedPredictions(null);
       } finally {
         setIsLoadingLastPredictions(false);
       }
     };
     
     fetchLastPredictions();
-  }, []);
+  }, [selectFromCache]);
 
   // Reset to initial state (after dismissing error)
   const resetToInitialState = () => {
+    log('debug', 'UI', 'Resetting to initial state');
     setProcessingError(null);
     setUploadedFile(null);
     setHasProcessedInSession(false);
     setNoData(false);
-    // Keep existing predictions/mock data visible
   };
 
   // Process predictions - only called when user clicks "Process Predictions" button
@@ -347,6 +314,7 @@ const Index = () => {
       return;
     }
     
+    log('info', 'PROCESS', `Starting data processing for file: ${uploadedFile.name}`);
     setIsProcessing(true);
     setNoData(false);
     setProcessingError(null);
@@ -355,6 +323,8 @@ const Index = () => {
       // Step 1: Upload file to /api/data
       const fileFormData = new FormData();
       fileFormData.append('file', uploadedFile);
+      
+      log('debug', 'API', `Uploading file to ${API_BASE_URL}/api/data`);
       
       let uploadResponse: Response;
       try {
@@ -365,14 +335,18 @@ const Index = () => {
         );
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
+          log('error', 'API', 'File upload timed out');
           throw { type: 'timeout' as ErrorType, details: 'File upload request timed out' };
         }
+        log('error', 'API', 'Network error during file upload', error);
         throw { type: 'network' as ErrorType, details: String(error) };
       }
       
       // Handle upload response errors
       if (!uploadResponse.ok) {
         const errorBody = await uploadResponse.text().catch(() => '');
+        log('error', 'API', `Upload failed with status ${uploadResponse.status}`, errorBody);
+        
         if (uploadResponse.status === 400) {
           throw { type: 'invalid_format' as ErrorType, details: errorBody || 'Bad request during file upload' };
         }
@@ -385,49 +359,56 @@ const Index = () => {
         throw { type: 'unknown' as ErrorType, details: `File upload failed with status ${uploadResponse.status}: ${errorBody}` };
       }
       
-      // Parse upload response (separate schema from predictions)
+      // Parse upload response
       let uploadResult: unknown;
       try {
         uploadResult = await uploadResponse.json();
+        log('info', 'API', 'File uploaded successfully', uploadResult);
       } catch (parseError) {
+        log('error', 'API', 'Failed to parse upload response', parseError);
         throw { type: 'malformed_response' as ErrorType, details: 'Failed to parse upload response JSON' };
       }
       
-      // Validate upload response with its own schema (NOT predictions schema)
+      // Validate upload response
       const uploadParseResult = UploadResponseSchema.safeParse(uploadResult);
       if (!uploadParseResult.success) {
-        console.warn("Upload response validation warning:", uploadParseResult.error);
-        // Don't throw - upload might still be successful even if response format differs
+        log('warn', 'VALIDATION', 'Upload response validation warning', uploadParseResult.error);
       }
       
-      console.log("File uploaded successfully:", uploadResult);
+      // Step 2: Get ALL predictions (hierarchical) from /api/filters
+      log('debug', 'API', `Fetching hierarchical predictions from ${API_BASE_URL}/api/filters`);
       
-      // Step 2: Get predictions from /api/filters
       let filterResponse: Response;
       try {
+        // Request ALL data (site: "all", sector: "all") to get full hierarchical response
         filterResponse = await fetchWithTimeout(
           `${API_BASE_URL}/api/filters`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ site: selectedSite, sector: selectedSector }),
+            body: JSON.stringify({ site: "all", sector: "all" }),
           },
           API_TIMEOUT_MS
         );
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
+          log('error', 'API', 'Prediction request timed out');
           throw { type: 'timeout' as ErrorType, details: 'Prediction request timed out' };
         }
+        log('error', 'API', 'Network error during prediction request', error);
         throw { type: 'network' as ErrorType, details: String(error) };
       }
       
       // Handle filter response errors
       if (!filterResponse.ok) {
         const errorBody = await filterResponse.text().catch(() => '');
+        log('error', 'API', `Prediction request failed with status ${filterResponse.status}`, errorBody);
+        
         if (filterResponse.status === 400) {
           throw { type: 'invalid_format' as ErrorType, details: errorBody || 'Bad request for predictions' };
         }
         if (filterResponse.status === 404) {
+          log('warn', 'API', 'No predictions available (404)');
           setNoData(true);
           toast.info("No prediction available for this selection");
           return;
@@ -445,51 +426,54 @@ const Index = () => {
       let rawData: unknown;
       try {
         rawData = await filterResponse.json();
+        log('debug', 'API', 'Raw response from /api/filters', rawData);
       } catch (parseError) {
+        log('error', 'API', 'Failed to parse prediction response', parseError);
         throw { type: 'malformed_response' as ErrorType, details: 'Failed to parse JSON response from server' };
       }
       
-      // Validate response schema to prevent malformed data issues
-      const parseResult = BackendPredictionResponseSchema.safeParse(rawData);
+      // Validate hierarchical response schema
+      const parseResult = HierarchicalForecastResponseSchema.safeParse(rawData);
       if (!parseResult.success) {
-        console.error("Invalid API response format:", parseResult.error);
+        log('error', 'VALIDATION', 'Schema validation failed', parseResult.error.errors);
         throw { 
           type: 'malformed_response' as ErrorType, 
           details: `Schema validation failed: ${parseResult.error.errors.map(e => e.message).join(', ')}` 
         };
       }
       
-      const data: BackendPredictionResponse = parseResult.data as BackendPredictionResponse;
+      const hierarchicalData = parseResult.data as HierarchicalForecastResponse;
       
-      // Check if we received empty predictions
-      if (Object.keys(data.predictions).length === 0) {
-        throw { type: 'empty_predictions' as ErrorType, details: 'Backend returned an empty predictions object' };
+      // Check if we received valid predictions
+      if (!hierarchicalData.global?.daily_forecast?.length) {
+        log('error', 'API', 'Empty predictions in response');
+        throw { type: 'empty_predictions' as ErrorType, details: 'Backend returned no predictions' };
       }
       
-      // Convert backend response to app format
-      const convertedData = convertBackendResponse(data);
-      
-      // Update state with real API data
-      setPredictions(convertedData.predictions);
-      setTotal(convertedData.total);
-      setAverage(convertedData.average);
-      setNoData(false);
-      setHasProcessedInSession(true);
-      setIsMockData(false); // Real API data - never use mock again
-      
-      // Save to localStorage for persistence
-      saveLastPrediction({
-        predictions: convertedData.predictions,
-        total: convertedData.total,
-        average: convertedData.average,
-        filters: {
-          site: selectedSite,
-          sector: selectedSector,
-        },
-        timestamp: new Date().toISOString(),
+      // CACHE the full hierarchical data for filter-based selection
+      log('info', 'CACHE', 'Caching hierarchical predictions', {
+        sitesAvailable: Object.keys(hierarchicalData.sites),
+        totalGlobalPredictions: hierarchicalData.global.daily_forecast.length
       });
       
-      toast.success("Predictions processed successfully!");
+      setCachedPredictions(hierarchicalData);
+      if (hierarchicalData.meta) {
+        setForecastMeta(hierarchicalData.meta as ForecastMeta);
+      }
+      
+      // Select data based on current filters
+      const convertedData = selectFromCache(selectedSite, selectedSector, hierarchicalData);
+      if (convertedData) {
+        setPredictions(convertedData.predictions);
+        setTotal(convertedData.total);
+        setAverage(convertedData.average);
+      }
+      
+      setNoData(false);
+      setHasProcessedInSession(true);
+      
+      log('info', 'PROCESS', 'Predictions processed and cached successfully');
+      toast.success("Predictions processed and cached successfully!");
       
     } catch (err) {
       // Handle typed errors
@@ -501,7 +485,7 @@ const Index = () => {
           message: errorMessage,
           details: typedError.details 
         });
-        console.error(`Processing error [${typedError.type}]:`, typedError.details);
+        log('error', 'PROCESS', `Processing error [${typedError.type}]`, typedError.details);
       } else {
         // Unknown error format
         const errorMessage = err instanceof Error ? err.message : String(err);
@@ -510,69 +494,69 @@ const Index = () => {
           message: getErrorMessage('unknown', errorMessage),
           details: errorMessage 
         });
-        console.error("Unknown processing error:", err);
+        log('error', 'PROCESS', 'Unknown processing error', err);
       }
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Update sector when site changes - update data based on mode
+  // Update predictions when site filter changes - select from cache
   const handleSiteChange = (value: string) => {
+    log('debug', 'FILTER', `Site changed to: ${value}`);
     setSelectedSite(value);
-    // Reset to "All Sectors" when site changes
-    setSelectedSector("all");
-    // Reset processed state - user needs to reprocess with new filters
+    setSelectedSector("all"); // Reset sector when site changes
     setHasProcessedInSession(false);
     
-    if (isMockData) {
-      // In demo mode, generate new mock data for the filter combination
-      const mockData = generateMockPredictions(value, "all");
-      setPredictions(mockData.predictions);
-      setTotal(mockData.total);
-      setAverage(mockData.average);
-    } else if (lastPredictionsData) {
-      // In live mode, select from hierarchical data based on filters
-      try {
-        const convertedData = convertHierarchicalResponse(lastPredictionsData, value, "all");
+    if (cachedPredictions) {
+      const convertedData = selectFromCache(value, "all", cachedPredictions);
+      if (convertedData) {
         setPredictions(convertedData.predictions);
         setTotal(convertedData.total);
         setAverage(convertedData.average);
-      } catch (error) {
-        console.warn("Filter combination not found in data:", error);
-        // Keep current predictions if filter not found
+        setProcessingError(null);
+      } else {
+        // Filter combination not found in cache
+        setProcessingError({
+          type: 'filter_not_found',
+          message: getErrorMessage('filter_not_found'),
+          details: `Site "${value}" not found in cached data`
+        });
       }
+    } else {
+      log('warn', 'FILTER', 'No cached data - cannot change filter without processing data first');
     }
   };
 
-  // Handle sector change - update data based on mode
+  // Update predictions when sector filter changes - select from cache
   const handleSectorChange = (value: string) => {
+    log('debug', 'FILTER', `Sector changed to: ${value}`);
     setSelectedSector(value);
     setHasProcessedInSession(false);
     
-    if (isMockData) {
-      // In demo mode, generate new mock data for the filter combination
-      const mockData = generateMockPredictions(selectedSite, value);
-      setPredictions(mockData.predictions);
-      setTotal(mockData.total);
-      setAverage(mockData.average);
-    } else if (lastPredictionsData) {
-      // In live mode, select from hierarchical data based on filters
-      try {
-        const convertedData = convertHierarchicalResponse(lastPredictionsData, selectedSite, value);
+    if (cachedPredictions) {
+      const convertedData = selectFromCache(selectedSite, value, cachedPredictions);
+      if (convertedData) {
         setPredictions(convertedData.predictions);
         setTotal(convertedData.total);
         setAverage(convertedData.average);
-      } catch (error) {
-        console.warn("Filter combination not found in data:", error);
-        // Keep current predictions if filter not found
+        setProcessingError(null);
+      } else {
+        // Filter combination not found in cache
+        setProcessingError({
+          type: 'filter_not_found',
+          message: getErrorMessage('filter_not_found'),
+          details: `Sector "${value}" not found for site "${selectedSite}"`
+        });
       }
+    } else {
+      log('warn', 'FILTER', 'No cached data - cannot change filter without processing data first');
     }
   };
 
   const handleFileUpload = (file: File | null) => {
+    log('debug', 'FILE', file ? `File selected: ${file.name}` : 'File cleared');
     setUploadedFile(file);
-    // Reset processed state when new file is uploaded - user needs to reprocess
     setHasProcessedInSession(false);
   };
 
@@ -583,16 +567,14 @@ const Index = () => {
       return;
     }
 
-    // Find the chart element
+    log('info', 'PDF', 'Generating PDF report');
     const chartElement = document.querySelector('[data-chart="predicted-harvest"]') as HTMLElement | null;
 
-    // Calculate total error as sum of daily errors
     const hasErrorData = predictions.some(p => p.error !== undefined);
     const totalError = hasErrorData 
       ? Math.round(predictions.reduce((sum, p) => sum + (p.error || 0), 0))
       : null;
 
-    // Calculate total as sum of daily values
     const calculatedTotal = predictions.reduce((sum, p) => sum + p.value, 0);
 
     const reportData = {
@@ -614,15 +596,55 @@ const Index = () => {
     try {
       await generateReport(reportData);
       toast.success("PDF report generated successfully!", { id: "pdf-generation" });
+      log('info', 'PDF', 'PDF report generated successfully');
     } catch (err) {
       toast.error("Failed to generate PDF report", { id: "pdf-generation" });
-      console.error("PDF generation error:", err);
+      log('error', 'PDF', 'PDF generation failed', err);
     }
   };
 
+  // Toggle debug panel visibility (press Ctrl+Shift+D)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        setDebugMode(prev => !prev);
+        log('info', 'DEBUG', debugMode ? 'Debug panel hidden' : 'Debug panel shown');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [debugMode]);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <DashboardHeader isMockData={isMockData} />
+      <DashboardHeader hasData={predictions !== null && predictions.length > 0} isConnected={!isLoadingLastPredictions} />
+      
+      {/* Debug Panel - toggle with Ctrl+Shift+D */}
+      {debugMode && (
+        <div className="bg-muted/80 backdrop-blur border-b border-border p-4 max-h-64 overflow-y-auto font-mono text-xs">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-bold text-foreground">Debug Panel (Ctrl+Shift+D to toggle)</span>
+            <div className="flex gap-4 text-muted-foreground">
+              <span>API: {API_BASE_URL}</span>
+              <span>Cache: {cachedPredictions ? `${Object.keys(cachedPredictions.sites).length} sites` : 'empty'}</span>
+              <span>Predictions: {predictions?.length ?? 0}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            {debugLogs.slice(-20).map((log, i) => (
+              <div key={i} className={`
+                ${log.level === 'error' ? 'text-destructive' : ''}
+                ${log.level === 'warn' ? 'text-yellow-600 dark:text-yellow-400' : ''}
+                ${log.level === 'info' ? 'text-blue-600 dark:text-blue-400' : ''}
+                ${log.level === 'debug' ? 'text-muted-foreground' : ''}
+              `}>
+                <span className="opacity-60">{log.timestamp.split('T')[1].split('.')[0]}</span>
+                {' '}[{log.category}] {log.message}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       <div className="flex flex-1 overflow-hidden">
         <FilterSidebar
@@ -648,7 +670,7 @@ const Index = () => {
             )}
             
             {isLoadingLastPredictions ? (
-              <LoadingState message="Loading last predictions..." />
+              <LoadingState message="Connecting to backend..." />
             ) : isProcessing ? (
               <LoadingState message="Processing predictions... This may take up to 30 seconds." />
             ) : noData ? (
@@ -658,15 +680,26 @@ const Index = () => {
                     No prediction available for this selection.
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Try selecting different filters.
+                    Try selecting different filters or upload data first.
                   </p>
                 </div>
               </div>
             ) : processingError ? (
-              // When there's an error, show empty state below the error message
               <EmptyState />
             ) : predictions === null || predictions.length === 0 ? (
-              <EmptyState />
+              <div className="flex items-center justify-center h-[400px]">
+                <div className="text-center space-y-2">
+                  <p className="text-lg text-muted-foreground">
+                    No predictions loaded.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a data file and click "Process Predictions" to generate forecasts.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Press Ctrl+Shift+D to toggle debug panel
+                  </p>
+                </div>
+              </div>
             ) : (
               <section className="space-y-6">
                 <PredictedHarvestChart 
