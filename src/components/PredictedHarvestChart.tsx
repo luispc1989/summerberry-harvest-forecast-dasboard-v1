@@ -3,11 +3,17 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { DailyPrediction } from "@/types/api";
 import { calculatePredictions } from "@/utils/predictionCalculations";
 
+// Helper to compute weekday from ISO date string (YYYY-MM-DD)
+const getWeekdayFromDate = (dateStr: string): string => {
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dateObj = new Date(dateStr + 'T00:00:00');
+  return dayNames[dateObj.getDay()];
+};
+
 interface PredictedHarvestChartProps {
   site: string;
   selectedDate: Date;
   sector?: string;
-  // API data - when provided, uses this instead of mock calculations
   apiPredictions?: DailyPrediction[] | null;
 }
 
@@ -20,7 +26,7 @@ export const PredictedHarvestChart = ({
   // Use API data if available, otherwise fall back to mock calculations
   const data = apiPredictions 
     ? apiPredictions.map(pred => ({
-        date: pred.date,
+        date: pred.date, // Format: YYYY-MM-DD (same as daily cards)
         predicted: pred.value,
       }))
     : calculatePredictions({ 
@@ -45,7 +51,7 @@ export const PredictedHarvestChart = ({
             <XAxis 
               dataKey="date" 
               stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '11px' }}
             />
             <YAxis 
               stroke="hsl(var(--muted-foreground))"
@@ -55,10 +61,12 @@ export const PredictedHarvestChart = ({
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const predicted = payload[0].value as number;
+                  const dateStr = payload[0].payload.date;
+                  const fullDay = getWeekdayFromDate(dateStr);
                   
                   return (
                     <div className="bg-card border border-border p-4 rounded-lg shadow-lg">
-                      <p className="text-sm font-medium mb-2">{payload[0].payload.date}</p>
+                      <p className="text-sm font-medium mb-2">{fullDay}, {dateStr}</p>
                       <p className="text-sm text-primary">
                         Predicted Harvest: {predicted} kg
                       </p>
