@@ -244,8 +244,16 @@ const Index = () => {
           throw new Error(`Backend returned ${response.status}`);
         }
         
-        const rawData = await response.json();
-        log('debug', 'API', 'Raw response from /api/last_predictions', rawData);
+        const responseJson = await response.json();
+        log('debug', 'API', 'Raw response from /api/last_predictions', responseJson);
+        
+        // Backend wraps data in { status, uploaded, message } - extract uploaded
+        let rawData: unknown;
+        if (responseJson && typeof responseJson === 'object' && 'uploaded' in responseJson) {
+          rawData = responseJson.uploaded;
+        } else {
+          rawData = responseJson;
+        }
         
         // Validate hierarchical response schema
         const parseResult = HierarchicalForecastResponseSchema.safeParse(rawData);
@@ -375,18 +383,17 @@ const Index = () => {
         log('warn', 'VALIDATION', 'Upload response validation warning', uploadParseResult.error);
       }
       
-      // Step 2: Get ALL predictions (hierarchical) from /api/filters
-      log('debug', 'API', `Fetching hierarchical predictions from ${API_BASE_URL}/api/filters`);
+      // Step 2: Get ALL predictions (hierarchical) from /api/new_predictions
+      log('debug', 'API', `Fetching hierarchical predictions from ${API_BASE_URL}/api/new_predictions`);
       
       let filterResponse: Response;
       try {
-        // Request ALL data (site: "all", sector: "all") to get full hierarchical response
+        // Request predictions from the ML model
         filterResponse = await fetchWithTimeout(
-          `${API_BASE_URL}/api/filters`,
+          `${API_BASE_URL}/api/new_predictions`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ site: "all", sector: "all" }),
           },
           API_TIMEOUT_MS
         );
@@ -425,8 +432,15 @@ const Index = () => {
       // Parse response
       let rawData: unknown;
       try {
-        rawData = await filterResponse.json();
-        log('debug', 'API', 'Raw response from /api/filters', rawData);
+        const responseJson = await filterResponse.json();
+        log('debug', 'API', 'Raw response from /api/new_predictions', responseJson);
+        
+        // Backend wraps data in { status, uploaded, message } - extract uploaded
+        if (responseJson && typeof responseJson === 'object' && 'uploaded' in responseJson) {
+          rawData = responseJson.uploaded;
+        } else {
+          rawData = responseJson;
+        }
       } catch (parseError) {
         log('error', 'API', 'Failed to parse prediction response', parseError);
         throw { type: 'malformed_response' as ErrorType, details: 'Failed to parse JSON response from server' };
