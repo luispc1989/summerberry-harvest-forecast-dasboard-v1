@@ -24,7 +24,8 @@ const UploadResponseSchema = z.object({
   message: z.string().optional()
 });
 
-// Zod schema for hierarchical /api/last_predictions and /api/filters response
+// Zod schema for backend response format
+// Backend format: { meta, predictions: { site: { sector: { daily_forecast: [...] } } } }
 const DailyForecastSchema = z.object({
   date: z.string(),
   value: z.number(),
@@ -34,16 +35,7 @@ const DailyForecastSchema = z.object({
 });
 
 const SectorForecastSchema = z.object({
-  daily_forecast: z.array(DailyForecastSchema),
-  total: z.number(),
-  average: z.number()
-});
-
-const SiteForecastSchema = z.object({
-  daily_forecast: z.array(DailyForecastSchema),
-  total: z.number(),
-  average: z.number(),
-  sectors: z.record(SectorForecastSchema)
+  daily_forecast: z.array(DailyForecastSchema)
 });
 
 const HierarchicalForecastResponseSchema = z.object({
@@ -54,12 +46,7 @@ const HierarchicalForecastResponseSchema = z.object({
     error_metric: z.string().optional(),
     confidence_level: z.number().optional()
   }).optional(),
-  global: z.object({
-    daily_forecast: z.array(DailyForecastSchema),
-    total: z.number(),
-    average: z.number()
-  }),
-  sites: z.record(SiteForecastSchema)
+  predictions: z.record(z.record(SectorForecastSchema))
 });
 
 // API base URL - configure this for your local Python backend
@@ -219,7 +206,7 @@ const Index = () => {
       return convertedData;
     } catch (error) {
       log('error', 'CACHE', `Filter selection failed: ${error instanceof Error ? error.message : String(error)}`, {
-        availableSites: Object.keys(cache.sites),
+        availableSites: Object.keys(cache.predictions),
         requestedSite: site,
         requestedSector: sector
       });
@@ -265,7 +252,7 @@ const Index = () => {
         const hierarchicalData = parseResult.data as HierarchicalForecastResponse;
         
         // Check if we have actual predictions
-        if (!hierarchicalData.global?.daily_forecast?.length) {
+        if (!hierarchicalData.predictions || Object.keys(hierarchicalData.predictions).length === 0) {
           log('warn', 'API', 'No predictions stored in database');
           throw new Error("No predictions available");
         }
@@ -285,8 +272,8 @@ const Index = () => {
         }
         
         log('info', 'INIT', 'Successfully loaded last predictions from backend', {
-          sitesAvailable: Object.keys(hierarchicalData.sites),
-          totalPredictions: hierarchicalData.global.daily_forecast.length
+          sitesAvailable: Object.keys(hierarchicalData.predictions),
+          totalSites: Object.keys(hierarchicalData.predictions).length
         });
         
         toast.success("Loaded last predictions from database");
@@ -459,15 +446,15 @@ const Index = () => {
       const hierarchicalData = parseResult.data as HierarchicalForecastResponse;
       
       // Check if we received valid predictions
-      if (!hierarchicalData.global?.daily_forecast?.length) {
+      if (!hierarchicalData.predictions || Object.keys(hierarchicalData.predictions).length === 0) {
         log('error', 'API', 'Empty predictions in response');
         throw { type: 'empty_predictions' as ErrorType, details: 'Backend returned no predictions' };
       }
       
       // CACHE the full hierarchical data for filter-based selection
       log('info', 'CACHE', 'Caching hierarchical predictions', {
-        sitesAvailable: Object.keys(hierarchicalData.sites),
-        totalGlobalPredictions: hierarchicalData.global.daily_forecast.length
+        sitesAvailable: Object.keys(hierarchicalData.predictions),
+        totalSites: Object.keys(hierarchicalData.predictions).length
       });
       
       setCachedPredictions(hierarchicalData);
@@ -652,7 +639,7 @@ const Index = () => {
             <span className="font-bold text-foreground">Debug Panel (Ctrl+Shift+D to toggle)</span>
             <div className="flex gap-4 text-muted-foreground">
               <span>API: {API_BASE_URL}</span>
-              <span>Cache: {cachedPredictions ? `${Object.keys(cachedPredictions.sites).length} sites` : 'empty'}</span>
+              <span>Cache: {cachedPredictions ? `${Object.keys(cachedPredictions.predictions).length} sites` : 'empty'}</span>
               <span>Predictions: {predictions?.length ?? 0}</span>
             </div>
           </div>
