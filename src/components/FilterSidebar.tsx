@@ -1,4 +1,4 @@
-import { Filter, MapPin, Grid3x3, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2, FileDown } from "lucide-react";
+import { Filter, MapPin, Grid3x3, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2, FileDown, Clock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 import * as XLSX from 'xlsx';
 
 // Required sheet names for the XLSX template - update these when template is provided
@@ -13,6 +14,7 @@ const REQUIRED_SHEETS: string[] = [
   // TODO: Add required sheet names here when template is provided
   // Example: "Data", "Metadata", "Config"
 ];
+
 interface FilterSidebarProps {
   selectedSite: string;
   selectedSector: string;
@@ -23,6 +25,8 @@ interface FilterSidebarProps {
   onGenerateReport?: () => void;
   isProcessing?: boolean;
   hasPredictions?: boolean;
+  processingElapsedTime?: number; // Time in seconds since processing started
+  processingStage?: 'uploading' | 'predicting' | null; // Current stage of processing
 }
 
 const plantationDates = [
@@ -91,7 +95,9 @@ export const FilterSidebar = ({
   onProcessData,
   onGenerateReport,
   isProcessing = false,
-  hasPredictions = false
+  hasPredictions = false,
+  processingElapsedTime = 0,
+  processingStage = null
 }: FilterSidebarProps) => {
   const sectorOptions = getSectorOptions(selectedSite);
   const isAllSites = selectedSite === 'all';
@@ -101,6 +107,13 @@ export const FilterSidebar = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
+
+  // Format elapsed time as mm:ss
+  const formatElapsedTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Reset success state after animation
   useEffect(() => {
@@ -321,23 +334,43 @@ export const FilterSidebar = ({
                     <FileDown className="h-4 w-4" />
                     Generate PDF Report
                   </Button>
+                ) : isProcessing ? (
+                  <div className="space-y-3">
+                    {/* Progress indicator */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          {processingStage === 'uploading' ? 'Uploading file...' : 'Generating predictions...'}
+                        </span>
+                        <span className="text-primary font-medium flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatElapsedTime(processingElapsedTime)}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={processingStage === 'uploading' ? 30 : 60} 
+                        className="h-2"
+                      />
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        Large files may take several minutes to process
+                      </p>
+                    </div>
+                    <Button 
+                      className="w-full gap-2"
+                      disabled={true}
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </Button>
+                  </div>
                 ) : (
                   <Button 
                     className="w-full gap-2"
                     onClick={onProcessData}
-                    disabled={isProcessing}
                   >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4" />
-                        Process Predictions
-                      </>
-                    )}
+                    <Play className="h-4 w-4" />
+                    Process Predictions
                   </Button>
                 )}
               </div>

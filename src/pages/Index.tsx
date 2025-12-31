@@ -52,8 +52,7 @@ const HierarchicalForecastResponseSchema = z.object({
 // API base URL - configure this for your local Python backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-// Timeout for API requests (30 seconds)
-const API_TIMEOUT_MS = 30000;
+// No timeout - large files may take longer to process
 
 // Debug log levels
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
@@ -123,7 +122,7 @@ interface ProcessingError {
 // Get user-friendly error message based on error type
 const getErrorMessage = (type: ErrorType, details?: string): string => {
   const messages: Record<ErrorType, string> = {
-    timeout: 'Request timed out after 30 seconds. The server may be overloaded or the data processing is taking too long.',
+    timeout: 'Request was cancelled. Please try again.',
     network: 'Network error. Please check your connection and ensure the backend server is running at ' + API_BASE_URL,
     invalid_format: 'Invalid file format (400). The uploaded file format is not supported or contains invalid data.',
     insufficient_data: 'Insufficient data (422). The uploaded file does not contain enough data to generate predictions.',
@@ -138,22 +137,9 @@ const getErrorMessage = (type: ErrorType, details?: string): string => {
   return details ? `${baseMessage}\n\nDetails: ${details}` : baseMessage;
 };
 
-// Fetch with timeout helper
-const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number): Promise<Response> => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
+// Simple fetch helper (no timeout - large files may take longer)
+const fetchWithoutTimeout = async (url: string, options: RequestInit): Promise<Response> => {
+  return fetch(url, options);
 };
 
 const Index = () => {
@@ -163,6 +149,8 @@ const Index = () => {
   
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingElapsedTime, setProcessingElapsedTime] = useState(0);
+  const [processingStage, setProcessingStage] = useState<'uploading' | 'predicting' | null>(null);
   
   // Memoize today's date to avoid re-renders
   const selectedDate = useMemo(() => new Date(), []);
@@ -220,10 +208,9 @@ const Index = () => {
       log('info', 'INIT', 'Fetching last predictions from backend...');
       
       try {
-        const response = await fetchWithTimeout(
+        const response = await fetchWithoutTimeout(
           `${API_BASE_URL}/api/last_predictions`,
-          { method: 'GET' },
-          10000
+          { method: 'GET' }
         );
         
         if (!response.ok) {
@@ -311,8 +298,16 @@ const Index = () => {
     
     log('info', 'PROCESS', `Starting data processing for file: ${uploadedFile.name}`);
     setIsProcessing(true);
+    setProcessingElapsedTime(0);
+    setProcessingStage('uploading');
     setNoData(false);
     setProcessingError(null);
+    
+    // Start elapsed time counter
+    const startTime = Date.now();
+    const timerInterval = setInterval(() => {
+      setProcessingElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
     
     try {
       // Step 1: Upload file to /api/data
@@ -323,10 +318,9 @@ const Index = () => {
       
       let uploadResponse: Response;
       try {
-        uploadResponse = await fetchWithTimeout(
+        uploadResponse = await fetchWithoutTimeout(
           `${API_BASE_URL}/api/data`,
-          { method: 'POST', body: fileFormData },
-          API_TIMEOUT_MS
+          { method: 'POST', body: fileFormData }
         );
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
@@ -371,18 +365,18 @@ const Index = () => {
       }
       
       // Step 2: Get ALL predictions (hierarchical) from /api/new_predictions
+      setProcessingStage('predicting');
       log('debug', 'API', `Fetching hierarchical predictions from ${API_BASE_URL}/api/new_predictions`);
       
       let filterResponse: Response;
       try {
         // Request predictions from the ML model
-        filterResponse = await fetchWithTimeout(
+        filterResponse = await fetchWithoutTimeout(
           `${API_BASE_URL}/api/new_predictions`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-          },
-          API_TIMEOUT_MS
+          }
         );
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
@@ -498,7 +492,9 @@ const Index = () => {
         log('error', 'PROCESS', 'Unknown processing error', err);
       }
     } finally {
+      clearInterval(timerInterval);
       setIsProcessing(false);
+      setProcessingStage(null);
     }
   };
 
@@ -670,6 +666,8 @@ const Index = () => {
           onGenerateReport={handleGenerateReport}
           isProcessing={isProcessing}
           hasPredictions={hasProcessedInSession && predictions !== null && predictions.length > 0}
+          processingElapsedTime={processingElapsedTime}
+          processingStage={processingStage}
         />
         
         <main className="flex-1 overflow-y-auto bg-background">
@@ -685,7 +683,7 @@ const Index = () => {
             {isLoadingLastPredictions ? (
               <LoadingState message="Connecting to backend..." />
             ) : isProcessing ? (
-              <LoadingState message="Processing predictions... This may take up to 30 seconds." />
+              <LoadingState message={`Processing predictions... (${Math.floor(processingElapsedTime / 60)}:${(processingElapsedTime % 60).toString().padStart(2, '0')} elapsed)`} />
             ) : noData ? (
               <div className="flex items-center justify-center h-[400px]">
                 <div className="text-center space-y-2">
