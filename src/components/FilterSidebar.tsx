@@ -1,4 +1,4 @@
-import { Filter, MapPin, Grid3x3, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2, FileDown, Clock } from "lucide-react";
+import { Filter, MapPin, Grid3x3, Upload, X, FileSpreadsheet, CheckCircle2, Play, Loader2, FileDown, Clock, XCircle, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,24 @@ const REQUIRED_SHEETS: string[] = [
   // Example: "Data", "Metadata", "Config"
 ];
 
+// Processing stages type matching Index.tsx
+type ProcessingStage = 
+  | 'uploading' 
+  | 'validating' 
+  | 'processing_ml' 
+  | 'generating_predictions'
+  | 'finalizing'
+  | null;
+
+// Processing stage configuration for UI
+const PROCESSING_STAGES: Record<Exclude<ProcessingStage, null>, { label: string; progress: number; estimatedSeconds: number }> = {
+  uploading: { label: 'Uploading file...', progress: 15, estimatedSeconds: 2 },
+  validating: { label: 'Validating data...', progress: 30, estimatedSeconds: 3 },
+  processing_ml: { label: 'Processing ML model...', progress: 60, estimatedSeconds: 30 },
+  generating_predictions: { label: 'Generating predictions...', progress: 85, estimatedSeconds: 15 },
+  finalizing: { label: 'Finalizing results...', progress: 95, estimatedSeconds: 2 }
+};
+
 interface FilterSidebarProps {
   selectedSite: string;
   selectedSector: string;
@@ -23,10 +41,12 @@ interface FilterSidebarProps {
   onFileUpload?: (file: File | null) => void;
   onProcessData?: () => void;
   onGenerateReport?: () => void;
+  onCancelProcessing?: () => void;
   isProcessing?: boolean;
   hasPredictions?: boolean;
-  processingElapsedTime?: number; // Time in seconds since processing started
-  processingStage?: 'uploading' | 'predicting' | null; // Current stage of processing
+  processingElapsedTime?: number;
+  processingStage?: ProcessingStage;
+  uploadedFileSize?: number; // File size in bytes for time estimation
 }
 
 const plantationDates = [
@@ -94,10 +114,12 @@ export const FilterSidebar = ({
   onFileUpload,
   onProcessData,
   onGenerateReport,
+  onCancelProcessing,
   isProcessing = false,
   hasPredictions = false,
   processingElapsedTime = 0,
-  processingStage = null
+  processingStage = null,
+  uploadedFileSize = 0
 }: FilterSidebarProps) => {
   const sectorOptions = getSectorOptions(selectedSite);
   const isAllSites = selectedSite === 'all';
@@ -107,6 +129,28 @@ export const FilterSidebar = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
+
+  // Estimate total processing time based on file size
+  const estimateTotalTime = (fileSizeBytes: number): number => {
+    const fileSizeMB = fileSizeBytes / (1024 * 1024);
+    const baseTime = 10;
+    const timePerMB = 15;
+    return Math.round(baseTime + (fileSizeMB * timePerMB));
+  };
+
+  // Calculate estimated remaining time
+  const getEstimatedRemainingTime = (): number => {
+    if (!processingStage || uploadedFileSize === 0) return 0;
+    const totalEstimate = estimateTotalTime(uploadedFileSize);
+    const stageInfo = PROCESSING_STAGES[processingStage];
+    const progressFraction = stageInfo.progress / 100;
+    const elapsed = processingElapsedTime;
+    const estimatedTotal = elapsed / Math.max(progressFraction, 0.1);
+    const remaining = Math.max(0, estimatedTotal - elapsed);
+    return Math.round(Math.min(remaining, totalEstimate - elapsed));
+  };
+
+  const estimatedRemaining = getEstimatedRemainingTime();
 
   // Format elapsed time as mm:ss
   const formatElapsedTime = (seconds: number): string => {
@@ -334,34 +378,70 @@ export const FilterSidebar = ({
                     <FileDown className="h-4 w-4" />
                     Generate PDF Report
                   </Button>
-                ) : isProcessing ? (
+                ) : isProcessing && processingStage ? (
                   <div className="space-y-3">
-                    {/* Progress indicator */}
+                    {/* Detailed progress indicator */}
                     <div className="space-y-2">
+                      {/* Stage indicator with steps */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                        {Object.entries(PROCESSING_STAGES).map(([stage, info], index) => (
+                          <div key={stage} className="flex items-center gap-1">
+                            <div className={cn(
+                              "w-2 h-2 rounded-full transition-all",
+                              stage === processingStage ? "bg-primary animate-pulse" :
+                              info.progress <= (PROCESSING_STAGES[processingStage]?.progress || 0) ? "bg-primary" : "bg-muted"
+                            )} />
+                            {index < Object.keys(PROCESSING_STAGES).length - 1 && (
+                              <div className={cn(
+                                "w-4 h-0.5 transition-all",
+                                info.progress < (PROCESSING_STAGES[processingStage]?.progress || 0) ? "bg-primary" : "bg-muted"
+                              )} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Current stage label */}
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground flex items-center gap-1.5">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          {processingStage === 'uploading' ? 'Uploading file...' : 'Generating predictions...'}
-                        </span>
-                        <span className="text-primary font-medium flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatElapsedTime(processingElapsedTime)}
+                        <span className="text-foreground flex items-center gap-1.5 font-medium">
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          {PROCESSING_STAGES[processingStage].label}
                         </span>
                       </div>
+                      
+                      {/* Progress bar */}
                       <Progress 
-                        value={processingStage === 'uploading' ? 30 : 60} 
+                        value={PROCESSING_STAGES[processingStage].progress} 
                         className="h-2"
                       />
+                      
+                      {/* Time information */}
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Elapsed: {formatElapsedTime(processingElapsedTime)}
+                        </span>
+                        {estimatedRemaining > 0 && (
+                          <span className="flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            ~{formatElapsedTime(estimatedRemaining)} remaining
+                          </span>
+                        )}
+                      </div>
+                      
                       <p className="text-[10px] text-muted-foreground text-center">
                         Large files may take several minutes to process
                       </p>
                     </div>
+                    
+                    {/* Cancel button */}
                     <Button 
+                      variant="destructive"
                       className="w-full gap-2"
-                      disabled={true}
+                      onClick={onCancelProcessing}
                     >
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing...
+                      <XCircle className="h-4 w-4" />
+                      Cancel Processing
                     </Button>
                   </div>
                 ) : (
