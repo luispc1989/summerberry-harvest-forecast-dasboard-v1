@@ -111,6 +111,7 @@ type ErrorType =
   | 'empty_predictions'
   | 'malformed_response'
   | 'filter_not_found'
+  | 'cancelled'
   | 'unknown';
 
 interface ProcessingError {
@@ -118,6 +119,30 @@ interface ProcessingError {
   message: string;
   details?: string;
 }
+
+// Processing stages for detailed progress
+type ProcessingStage = 
+  | 'uploading' 
+  | 'validating' 
+  | 'processing_ml' 
+  | 'generating_predictions'
+  | 'finalizing'
+  | null;
+
+interface ProcessingStageInfo {
+  label: string;
+  progress: number;
+  estimatedSeconds: number; // base estimate per MB
+}
+
+// Processing stage configuration
+const PROCESSING_STAGES: Record<Exclude<ProcessingStage, null>, ProcessingStageInfo> = {
+  uploading: { label: 'Uploading file...', progress: 15, estimatedSeconds: 2 },
+  validating: { label: 'Validating data...', progress: 30, estimatedSeconds: 3 },
+  processing_ml: { label: 'Processing ML model...', progress: 60, estimatedSeconds: 30 },
+  generating_predictions: { label: 'Generating predictions...', progress: 85, estimatedSeconds: 15 },
+  finalizing: { label: 'Finalizing results...', progress: 95, estimatedSeconds: 2 }
+};
 
 // Get user-friendly error message based on error type
 const getErrorMessage = (type: ErrorType, details?: string): string => {
@@ -130,11 +155,21 @@ const getErrorMessage = (type: ErrorType, details?: string): string => {
     empty_predictions: 'Empty predictions. The backend returned no predictions for the selected filters.',
     malformed_response: 'Malformed response. The backend returned data in an unexpected format.',
     filter_not_found: 'Filter combination not found. The selected site/sector combination does not exist in the cached data.',
+    cancelled: 'Processing was cancelled by user.',
     unknown: 'An unexpected error occurred.'
   };
   
   const baseMessage = messages[type];
   return details ? `${baseMessage}\n\nDetails: ${details}` : baseMessage;
+};
+
+// Estimate total processing time based on file size (in MB)
+const estimateTotalTime = (fileSizeBytes: number): number => {
+  const fileSizeMB = fileSizeBytes / (1024 * 1024);
+  // Base time + time per MB (larger files take longer)
+  const baseTime = 10; // minimum 10 seconds
+  const timePerMB = 15; // 15 seconds per MB
+  return Math.round(baseTime + (fileSizeMB * timePerMB));
 };
 
 // Simple fetch helper (no timeout - large files may take longer)
@@ -150,7 +185,9 @@ const Index = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingElapsedTime, setProcessingElapsedTime] = useState(0);
-  const [processingStage, setProcessingStage] = useState<'uploading' | 'predicting' | null>(null);
+  const [processingStage, setProcessingStage] = useState<ProcessingStage>(null);
+  const [processingAbortController, setProcessingAbortController] = useState<AbortController | null>(null);
+  const [uploadedFileSize, setUploadedFileSize] = useState<number>(0);
   
   // Memoize today's date to avoid re-renders
   const selectedDate = useMemo(() => new Date(), []);
@@ -289,6 +326,22 @@ const Index = () => {
     setNoData(false);
   };
 
+  // Cancel ongoing processing
+  const handleCancelProcessing = () => {
+    if (processingAbortController) {
+      processingAbortController.abort();
+      setProcessingAbortController(null);
+      setIsProcessing(false);
+      setProcessingStage(null);
+      setProcessingError({
+        type: 'cancelled',
+        message: getErrorMessage('cancelled'),
+      });
+      log('info', 'PROCESS', 'Processing cancelled by user');
+      toast.info("Processing cancelled");
+    }
+  };
+
   // Process predictions - only called when user clicks "Process Predictions" button
   const handleProcessData = async () => {
     if (!uploadedFile) {
@@ -296,10 +349,15 @@ const Index = () => {
       return;
     }
     
-    log('info', 'PROCESS', `Starting data processing for file: ${uploadedFile.name}`);
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+    setProcessingAbortController(abortController);
+    
+    log('info', 'PROCESS', `Starting data processing for file: ${uploadedFile.name} (${(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)`);
     setIsProcessing(true);
     setProcessingElapsedTime(0);
     setProcessingStage('uploading');
+    setUploadedFileSize(uploadedFile.size);
     setNoData(false);
     setProcessingError(null);
     
@@ -318,14 +376,14 @@ const Index = () => {
       
       let uploadResponse: Response;
       try {
-        uploadResponse = await fetchWithoutTimeout(
+        uploadResponse = await fetch(
           `${API_BASE_URL}/api/data`,
-          { method: 'POST', body: fileFormData }
+          { method: 'POST', body: fileFormData, signal: abortController.signal }
         );
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-          log('error', 'API', 'File upload timed out');
-          throw { type: 'timeout' as ErrorType, details: 'File upload request timed out' };
+          log('info', 'API', 'File upload cancelled by user');
+          throw { type: 'cancelled' as ErrorType, details: 'Upload cancelled by user' };
         }
         log('error', 'API', 'Network error during file upload', error);
         throw { type: 'network' as ErrorType, details: String(error) };
@@ -364,24 +422,28 @@ const Index = () => {
         log('warn', 'VALIDATION', 'Upload response validation warning', uploadParseResult.error);
       }
       
-      // Step 2: Get ALL predictions (hierarchical) from /api/new_predictions
-      setProcessingStage('predicting');
+      // Step 2: Validation stage
+      setProcessingStage('validating');
+      
+      // Step 3: Get ALL predictions (hierarchical) from /api/new_predictions
+      setProcessingStage('processing_ml');
       log('debug', 'API', `Fetching hierarchical predictions from ${API_BASE_URL}/api/new_predictions`);
       
       let filterResponse: Response;
       try {
         // Request predictions from the ML model
-        filterResponse = await fetchWithoutTimeout(
+        filterResponse = await fetch(
           `${API_BASE_URL}/api/new_predictions`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: abortController.signal
           }
         );
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-          log('error', 'API', 'Prediction request timed out');
-          throw { type: 'timeout' as ErrorType, details: 'Prediction request timed out' };
+          log('info', 'API', 'Prediction request cancelled by user');
+          throw { type: 'cancelled' as ErrorType, details: 'Prediction cancelled by user' };
         }
         log('error', 'API', 'Network error during prediction request', error);
         throw { type: 'network' as ErrorType, details: String(error) };
@@ -445,16 +507,16 @@ const Index = () => {
         throw { type: 'empty_predictions' as ErrorType, details: 'Backend returned no predictions' };
       }
       
-      // CACHE the full hierarchical data for filter-based selection
-      log('info', 'CACHE', 'Caching hierarchical predictions', {
-        sitesAvailable: Object.keys(hierarchicalData.predictions),
-        totalSites: Object.keys(hierarchicalData.predictions).length
-      });
+      // Generating predictions stage
+      setProcessingStage('generating_predictions');
       
       setCachedPredictions(hierarchicalData);
       if (hierarchicalData.meta) {
         setForecastMeta(hierarchicalData.meta as ForecastMeta);
       }
+      
+      // Finalizing stage
+      setProcessingStage('finalizing');
       
       // Select data based on current filters
       const convertedData = selectFromCache(selectedSite, selectedSector, hierarchicalData);
@@ -495,6 +557,7 @@ const Index = () => {
       clearInterval(timerInterval);
       setIsProcessing(false);
       setProcessingStage(null);
+      setProcessingAbortController(null);
     }
   };
 
@@ -664,10 +727,12 @@ const Index = () => {
           onFileUpload={handleFileUpload}
           onProcessData={handleProcessData}
           onGenerateReport={handleGenerateReport}
+          onCancelProcessing={handleCancelProcessing}
           isProcessing={isProcessing}
           hasPredictions={hasProcessedInSession && predictions !== null && predictions.length > 0}
           processingElapsedTime={processingElapsedTime}
           processingStage={processingStage}
+          uploadedFileSize={uploadedFileSize}
         />
         
         <main className="flex-1 overflow-y-auto bg-background">
